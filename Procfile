@@ -1,1 +1,1 @@
-worker: java -jar build/libs/lib-all.jar
+worker: java -jar lib-all.jar
