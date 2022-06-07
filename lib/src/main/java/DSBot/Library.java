@@ -25,8 +25,8 @@ public class Library {
 	private final EventWaiter eventWaiter = new EventWaiter();
 	
     public static void main(String ... args) throws Exception {
-    	//new Library().start(System.getenv().get("TOKEN"));
-    	new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GhDgCO.-VYwkcRplebo_V0dB-3NTAVclNoGkZDy-CzhYk");
+    	new Library().start(System.getenv().get("TOKEN"));
+    	//new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GhDgCO.-VYwkcRplebo_V0dB-3NTAVclNoGkZDy-CzhYk");
     }
     
     public void start(String token) throws LoginException, InterruptedException, IOException, ClassNotFoundException {
