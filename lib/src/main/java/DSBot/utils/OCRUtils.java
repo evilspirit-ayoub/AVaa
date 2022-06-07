@@ -24,7 +24,6 @@ import net.sourceforge.tess4j.util.LoadLibs;
 public class OCRUtils {
 	
 	public static final int SIZE_ENLARGEMENT = 4;
-	/*public static final ITesseract instance = new Tesseract();
 	static {
 		System.load("C:/Users/okutucu/Documents/opencv/build/java/x64/opencv_java455.dll");
 		instance.setDatapath(System.getProperty("user.dir") + "/tessdata/");
