@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<<<<<<< HEAD
+<testsuite name="DSBot.LibraryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-06-07T11:42:09" hostname="DESKTOP-O44KM7S" time="0.002">
+  <properties/>
+  <testcase name="someLibraryMethodReturnsTrue()" classname="DSBot.LibraryTest" time="0.002"/>
+=======
 <testsuite name="DSBot.LibraryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-06-07T10:14:19" hostname="DESKTOP-O44KM7S" time="0.001">
   <properties/>
   <testcase name="someLibraryMethodReturnsTrue()" classname="DSBot.LibraryTest" time="0.001"/>
+>>>>>>> 261486024baa6130cc41fbd723e29fcf2cee3717
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

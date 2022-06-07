@@ -22,6 +22,8 @@ test {
 }
 
 dependencies {
+    compileJava {options.encoding = "UTF-8"}
+    compileTestJava {options.encoding = "UTF-8"}
 	//implementation fileTree('opencv')
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
