@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<<<<<<< HEAD
 <testsuite name="BotDS.LibraryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-06-07T11:42:09" hostname="DESKTOP-O44KM7S" time="0.028">
   <properties/>
   <testcase name="someLibraryMethodReturnsTrue()" classname="BotDS.LibraryTest" time="0.028"/>
+=======
+<testsuite name="BotDS.LibraryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-06-07T10:14:18" hostname="DESKTOP-O44KM7S" time="0.024">
+  <properties/>
+  <testcase name="someLibraryMethodReturnsTrue()" classname="BotDS.LibraryTest" time="0.024"/>
+>>>>>>> 261486024baa6130cc41fbd723e29fcf2cee3717
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
