@@ -8,7 +8,6 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -45,6 +44,8 @@ public class OCRUtils {
 		ITesseract instance = new Tesseract();
 		File tessDataFolder = LoadLibs.extractTessResources("tessdata");
 		instance.setDatapath(tessDataFolder.getAbsolutePath());
+		File tmpFolder = LoadLibs.extractTessResources("linux-x86-64");
+		System.setProperty("java.library.path", tmpFolder.getPath());
 		BufferedImage image = ImageIO.read(file);
 		if(!verification(image, startX, startY, width, height)) return new ArrayList<>();
 		List<String> res = new ArrayList<>();

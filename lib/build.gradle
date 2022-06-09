@@ -21,6 +21,12 @@ test {
 	useJUnitPlatform();
 }
 
+java {
+  toolchain {
+    languageVersion.set(JavaLanguageVersion.of(15))
+  }
+}
+
 dependencies {
 	compileJava {options.encoding = "UTF-8"}
 	compileTestJava {options.encoding = "UTF-8"}
@@ -44,7 +50,7 @@ dependencies {
 	implementation 'net.dv8tion:JDA:5.0.0-alpha.11'
 
 	// https://mvnrepository.com/artifact/com.jagrosh/jda-utilities-commons
-	//implementation 'com.jagrosh:jda-utilities-commons:3.0.5'
+	implementation 'com.jagrosh:jda-utilities-commons:3.0.5'
 	
 	// https://mvnrepository.com/artifact/pw.chew/jda-chewtils-command
 	implementation 'pw.chew:jda-chewtils-command:1.19'

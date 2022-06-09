@@ -6,7 +6,6 @@ package DSBot;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javax.security.auth.login.LoginException;
@@ -14,7 +13,6 @@ import javax.security.auth.login.LoginException;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 
 import DSBot.commands.CommandExecutor;
-import DSBot.Library;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
@@ -25,8 +23,8 @@ public class Library {
 	private final EventWaiter eventWaiter = new EventWaiter();
 	
     public static void main(String ... args) throws Exception {
-    	new Library().start(System.getenv().get("TOKEN"));
-    	//new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GhDgCO.-VYwkcRplebo_V0dB-3NTAVclNoGkZDy-CzhYk");
+    	//new Library().start(System.getenv().get("TOKEN"));
+    	new Library().start("OTczNTU2MDIyNDkwODU3NDg0.G9qJBm.E0TzN3zdjVC4AL9unQoos5Z8e1rebsro23AET0");
     }
     
     public void start(String token) throws LoginException, InterruptedException, IOException, ClassNotFoundException {
@@ -46,20 +44,6 @@ public class Library {
 			catch (IOException e) { e.printStackTrace(); }
 		});
     }
-    
-    public static void copyDirectory(String sourceDirectoryLocation, String destinationDirectoryLocation) 
-    		  throws IOException {
-    		    Files.walk(Paths.get(sourceDirectoryLocation))
-    		      .forEach(source -> {
-    		          Path destination = Paths.get(destinationDirectoryLocation, source.toString()
-    		            .substring(sourceDirectoryLocation.length()));
-    		          try {
-    		              Files.copy(source, destination);
-    		          } catch (IOException e) {
-    		              e.printStackTrace();
-    		          }
-    		      });
-    		}
     
     public EventWaiter getEventWaiter() { return eventWaiter; }
 }

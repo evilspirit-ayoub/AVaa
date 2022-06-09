@@ -12,7 +12,6 @@ import java.util.List;
 
 public class Player implements Serializable {
 	
-//
 	private static final long serialVersionUID = 1L;
 	private String pseudo;
 	private String id;
