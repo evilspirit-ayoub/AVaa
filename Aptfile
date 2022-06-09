@@ -1,3 +1,5 @@
+build-essential
+aptitude
 libstdc++6
 tesseract-ocr
 tesseract-ocr-eng
