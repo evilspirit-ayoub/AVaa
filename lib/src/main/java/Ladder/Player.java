@@ -13,6 +13,7 @@ import java.util.List;
 public class Player implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
+	public static final String DATA_FILE_NAME = "data";
 	private String pseudo;
 	private String id;
 	private int generalLadderPosition;
@@ -82,7 +83,7 @@ public class Player implements Serializable {
 	
 	public static void serialize(String guild, List<Player> players) throws IOException {
         try {
-        	File data = new File(guild + "/data");
+        	File data = new File(guild + "/" + DATA_FILE_NAME);
         	if(!data.exists()) data.createNewFile();
     		FileOutputStream fos = new FileOutputStream(data);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
@@ -93,7 +94,7 @@ public class Player implements Serializable {
 	}
 	
 	public static List<Player> unserialize(String guild) throws IOException, ClassNotFoundException, InterruptedException {
-		File data = new File(guild + "/data");
+		File data = new File(guild + "/" + DATA_FILE_NAME);
 		if(!data.exists()) return new ArrayList<>();
 		FileInputStream fis = new FileInputStream(data);
         ObjectInputStream ois = new ObjectInputStream(fis);

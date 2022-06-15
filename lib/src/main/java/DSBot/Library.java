@@ -12,7 +12,7 @@ import javax.security.auth.login.LoginException;
 
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 
-import DSBot.commands.CommandExecutor;
+import DSBot.command.CommandExecutor;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
@@ -24,7 +24,7 @@ public class Library {
 	
     public static void main(String ... args) throws Exception {
     	//new Library().start(System.getenv().get("TOKEN"));
-    	new Library().start("OTczNTU2MDIyNDkwODU3NDg0.G9qJBm.E0TzN3zdjVC4AL9unQoos5Z8e1rebsro23AET0");
+    	new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GCj591.T30ZpBsWAc7N9xMeFmmIJAUg6wmLdxTcpQ8V9w");
     }
     
     public void start(String token) throws LoginException, InterruptedException, IOException, ClassNotFoundException {

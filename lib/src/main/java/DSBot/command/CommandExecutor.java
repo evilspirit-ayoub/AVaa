@@ -1,15 +1,13 @@
 package DSBot.command;
 
-import java.io.File;
-import java.io.IOException;
-
 import DSBot.Library;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
-public class CommandExecutor {
+public class CommandExecutor extends ListenerAdapter {
 	
-	/*public static final String PREFIX = "!";
+	public static final String PREFIX = "!";
 	public static final String SCREEN = PREFIX + "screen";
 	public static final String LADDER = PREFIX + "ladder";
 	public static final String LINK = PREFIX + "link";
@@ -24,15 +22,17 @@ public class CommandExecutor {
         String[] args = message.getContentRaw().split(" ");
         switch(args[0]) {
         case SCREEN :
-        	try { ScreenCommand.screen(args, message); } catch (InterruptedException e1) { e1.printStackTrace(); }
+        	try { ScreenCommand.screen(library, args, message); } catch (Exception e1) { e1.printStackTrace(); }
         	break;
         case LADDER :
+        	try { LadderCommand.ladder(args, message); } catch (Exception e1) { e1.printStackTrace(); }
         	break;
         case LINK :
+        	try { LinkCommand.link(args, message); } catch (Exception e1) { e1.printStackTrace(); }
         	break;
         case UNLINK :
+        	try { UnlinkCommand.unlink(args, message); } catch (Exception e1) { e1.printStackTrace(); }
         	break;
         }
     }
-	*/
 }

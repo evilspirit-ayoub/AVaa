@@ -23,126 +23,116 @@ public class Ladder {
 
 	public static final int LADDER_SIZE = 20;
 	
-	public static void update(String guildName, Guild guild, List<String> ocr, boolean defense, boolean add) throws ClassNotFoundException, IOException, InterruptedException {
+	public static void update(Guild guild, List<String> players, boolean defense, int points) throws ClassNotFoundException, IOException, InterruptedException {
+		String guildName = guild.getName();
 		List<Player> data = Player.unserialize(guildName);
-		ocr.stream().filter(pseudo -> 
-			data.stream().filter(player -> player.getPseudo().equals(pseudo)).count() > 0)
-		.forEach(pseudo -> {
-			data.stream().filter(player -> player.getPseudo().equals(pseudo)).forEach(player -> {
-				if(!defense) {
-					if(add) {
-						player.setNumberAttacksMonth(player.getNumberAttacksMonth() + 1);
-						player.setNumberAttacksTotal(player.getNumberAttacksTotal() + 1);
-					} else {
-						player.setNumberAttacksMonth(player.getNumberAttacksMonth() - 1);
-						player.setNumberAttacksTotal(player.getNumberAttacksTotal() - 1);
-					}
+		players.stream().forEach(pseudo -> {
+			data.stream()
+			.filter(player -> player.getPseudo().equals(pseudo))
+			.findFirst()
+			.ifPresentOrElse(player -> {
+				if(defense) {
+					player.setNumberDefencesMonth(player.getNumberDefencesMonth() + points);
+					player.setNumberDefencesTotal(player.getNumberDefencesTotal() + points);
 				} else {
-					if(add) {
-						player.setNumberDefencesMonth(player.getNumberDefencesMonth() + 1);
-						player.setNumberDefencesTotal(player.getNumberDefencesTotal() + 1);
-					} else {
-						player.setNumberDefencesMonth(player.getNumberDefencesMonth() - 1);
-						player.setNumberDefencesTotal(player.getNumberDefencesTotal() - 1);
-					}
+					player.setNumberAttacksMonth(player.getNumberAttacksMonth() + points);
+					player.setNumberAttacksTotal(player.getNumberAttacksTotal() + points);
 				}
-				if(add) {
-					player.setMonthPoints(player.getMonthPoints() + 1);
-					player.setTotalPoints(player.getTotalPoints() + 1);
+				player.setMonthPoints(player.getMonthPoints() + points);
+				player.setTotalPoints(player.getTotalPoints() + points);
+			}, () -> {
+				Player player = new Player(pseudo);
+				if(defense) {
+					player.setNumberDefencesMonth(points);
+					player.setNumberDefencesTotal(points);
 				} else {
-					player.setMonthPoints(player.getMonthPoints() - 1);
-					player.setTotalPoints(player.getTotalPoints() - 1);
+					player.setNumberAttacksMonth(points);
+					player.setNumberAttacksTotal(points);
 				}
+				player.setMonthPoints(points);
+				player.setTotalPoints(points);
+				data.add(player);
 			});
 		});
-		ocr.stream().filter(pseudo -> 
-			data.stream().filter(player -> player.getPseudo().equals(pseudo)).count() == 0)
-		.forEach(pseudo -> {
-			Player player = new Player(pseudo);
-			if(!defense) {
-				player.setNumberAttacksMonth(1);
-				player.setNumberAttacksTotal(1);
-			} else {
-				player.setNumberDefencesMonth(1);
-				player.setNumberDefencesTotal(1);
-			}
-			player.setMonthPoints(1);
-			player.setTotalPoints(1);
-			data.add(player);
-		});
-		Player.serialize(guildName, data);
-		refreshLadderBoar(guild, data);
+		Player.serialize(guild.getName(), data);
+		refreshLadderBoar(guild);
 	}
-
-	public static void refreshLadderBoar(Guild guild, List<Player> data) {
+	
+	public static void refreshLadderBoar(Guild guild) {
 		guild
 		.getTextChannels()
 		.stream()
 		.filter(channel -> channel.getName().equals("classement"))
 		.findFirst()
 		.ifPresent(channel -> {
-			EmbedBuilder info = new EmbedBuilder().setColor(0x0000FF);
-			Map<String, Integer> general = new HashMap<>();
-			Map<String, Integer> months = new HashMap<>();
-			data.stream().filter(player -> !player.getId().equals("NO ID")).forEach(player -> {
-				if(general.containsKey(player.getId())) {
-					general.replace(player.getId(), general.get(player.getId()) + player.getTotalPoints());
-					months.replace(player.getId(), months.get(player.getId()) + player.getMonthPoints());
-				} else {
-					general.put(player.getId(), player.getTotalPoints());
-					months.put(player.getId(), player.getMonthPoints());
+			try {
+				List<Player> data = Player.unserialize(guild.getName());
+				EmbedBuilder info = new EmbedBuilder().setColor(0x0000FF);
+				Map<String, Integer> general = new HashMap<>();
+				Map<String, Integer> month = new HashMap<>();
+				data.stream().forEach(player -> {
+					if(general.containsKey(player.getPseudo())) {
+						general.replace(player.getPseudo(), general.get(player.getPseudo()) + player.getTotalPoints());
+						month.replace(player.getPseudo(), month.get(player.getPseudo()) + player.getMonthPoints());
+					} else {
+						general.put(player.getPseudo(), player.getTotalPoints());
+						month.put(player.getPseudo(), player.getMonthPoints());
+					}
+				});
+				Map<String, Integer> sortedGeneral = sortMap(general);
+				Map<String, Integer> sortedMonth = sortMap(month);
+				updatePlayersPositions(guild, data, sortedGeneral, sortedMonth);
+				info.addField("GENERAL :", collectClassment(guild, sortedGeneral), true);
+				info.addField(getMonth() + " :", collectClassment(guild, sortedMonth), true);
+				info.setFooter("Last update : " + DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").format(LocalDateTime.now()));
+				List<Message> history = MessageHistory.getHistoryFromBeginning(channel).complete().getRetrievedHistory();
+				if(history.size() == 0) channel.sendMessageEmbeds(info.build()).queue();
+				else if(history.size() == 1) channel.editMessageEmbedsById(history.get(0).getIdLong(), info.build()).queue();
+				else {
+					channel.deleteMessages(history).queue();
+					channel.sendMessageEmbeds(info.build()).queue();
 				}
-			});
-			Map<String, Integer> sortedGeneral = general.entrySet().stream()
-				    .sorted(Entry.comparingByValue())
-				    .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-			Map<String, Integer> sortedMonth = months.entrySet().stream()
-				    .sorted(Entry.comparingByValue())
-				    .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-			try { setPositions(guild.getName(), sortedGeneral, sortedMonth); }
-			catch (ClassNotFoundException | IOException | InterruptedException e) { e.printStackTrace(); }
-			List<Message> history = MessageHistory.getHistoryFromBeginning(channel).complete().getRetrievedHistory();
-			info.addField("GENERAL :", "\n" + getTop(guild, sortedGeneral), true);
-			Date date= new Date();
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(date);
-			int month = cal.get(Calendar.MONTH);
-			info.addField(new DateFormatSymbols().getMonths()[month].toUpperCase() + " :", "\n" + getTop(guild, sortedMonth), true);
-			info.setFooter("Last update : " + DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").format(LocalDateTime.now()));
-			if(history.size() == 0) channel.sendMessageEmbeds(info.build()).queue();
-			else if(history.size() == 1) channel.editMessageEmbedsById(history.get(0).getIdLong(), info.build()).queue();
-			else {
-				channel.deleteMessages(history).queue();
-				channel.sendMessageEmbeds(info.build()).queue();
-			}
+			} catch (ClassNotFoundException | IOException | InterruptedException e3) { e3.printStackTrace(); }
 		});
 	}
 	
-	private static void setPositions(String guildName, Map<String, Integer> sortedGeneral, Map<String, Integer> sortedMonth) throws ClassNotFoundException, IOException, InterruptedException {
-		List<Player> players = Player.unserialize(guildName);
-		players.stream().filter(player -> !player.getId().equals("NO ID"))
-		.forEach(player -> {
-			player.setGeneralLadderPosition(findPosition(player.getId(), sortedGeneral));
-			player.setMonthLadderPosition(findPosition(player.getId(), sortedMonth));
-		});
-		Player.serialize(guildName, players);
+	private static Map<String, Integer> sortMap(Map<String, Integer> map) {
+		return map.entrySet().stream()
+			    .sorted(Entry.comparingByValue())
+			    .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 	}
 
-	private static int findPosition(String id, Map<String, Integer> sortedMap) {
+	private static void updatePlayersPositions(Guild guild, List<Player> players, Map<String, Integer> sortedGeneral, Map<String, Integer> sortedMonth) throws ClassNotFoundException, IOException, InterruptedException {
+		players.stream().forEach(player -> {
+			player.setGeneralLadderPosition(findPosition(player.getPseudo(), sortedGeneral));
+			player.setMonthLadderPosition(findPosition(player.getPseudo(), sortedMonth));
+		});
+		Player.serialize(guild.getName(), players);
+	}
+
+	private static int findPosition(String pseudo, Map<String, Integer> map) {
 		int position = 0;
-		for(String key : sortedMap.keySet()) {
-			if(key.equals(id)) break;
+		for(String key : map.keySet()) {
+			if(key.equals(pseudo)) break;
 			position++;
 		}
-		return sortedMap.entrySet().size() - position;
+		return map.entrySet().size() - position;
 	}
 
-	private static String getTop(Guild guild, Map<String, Integer> classment) {
+	private static String collectClassment(Guild guild, Map<String, Integer> classment) {
 		int size = classment.entrySet().size() > LADDER_SIZE ? 20 : classment.entrySet().size();
 		List<String> top = new ArrayList<>();
 		String str = "";
 		for(String key : classment.keySet()) top.add("<@" + key + ">" + " (" + classment.get(key) + " points)");
 		for(int i = 0; i < size; i++) str = str + "#" + (i + 1) + " " + top.get(top.size() - 1 - i) + "\n";
 		return str;
+	}
+	
+	private static String getMonth() {
+		Date date= new Date();
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(date);
+		int month = cal.get(Calendar.MONTH);
+		return new DateFormatSymbols().getMonths()[month].toUpperCase();
 	}
 }
