@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="BotDS.LibraryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-06-15T20:56:16" hostname="DESKTOP-O44KM7S" time="0.027">
+  <properties/>
+  <testcase name="someLibraryMethodReturnsTrue()" classname="BotDS.LibraryTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
