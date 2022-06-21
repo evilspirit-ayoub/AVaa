@@ -23,7 +23,7 @@ test {
 
 java {
   toolchain {
-    languageVersion.set(JavaLanguageVersion.of(15))
+    languageVersion.set(JavaLanguageVersion.of(17))
   }
 }
 
@@ -57,6 +57,9 @@ dependencies {
 	
 	// https://mvnrepository.com/artifact/org.openpnp/opencv
 	implementation 'org.openpnp:opencv:4.5.1-2'
+	
+	// https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client
+	implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.5'	
 }
 
 tasks.named('test') {

@@ -3,16 +3,13 @@
  */
 package DSBot;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import javax.security.auth.login.LoginException;
 
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 
-import DSBot.command.CommandExecutor;
+import DSBot.command.CommandManager;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
@@ -24,7 +21,7 @@ public class Library {
 	
     public static void main(String ... args) throws Exception {
     	//new Library().start(System.getenv().get("TOKEN"));
-    	new Library().start("OTczNTU2MDIyNDkwODU3NDg0.Gu9T-w.hHPmuce_XzpWp61tlh2y-xuOqsgXoMGQV4cuoc");
+    	new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GwwLZo.UUZPc1M85SmKs8mszPr4lNJ1vhrZAte_Pgo0SI");
     }
     
     public void start(String token) throws LoginException, InterruptedException, IOException, ClassNotFoundException {
@@ -33,17 +30,10 @@ public class Library {
 		.setChunkingFilter(ChunkingFilter.ALL) // enable member chunking for all guilds
 		.setMemberCachePolicy(MemberCachePolicy.ALL)
 		.enableIntents(GatewayIntent.GUILD_MEMBERS)
-        .addEventListeners(new CommandExecutor(this), eventWaiter)
+        .addEventListeners(new CommandManager(this), eventWaiter)
         .build()
-        .awaitReady()
-        .getGuilds()
-        .parallelStream()
-        .filter(g -> !new File(g.getName()).exists())
-        .forEach(g -> {
-			try { Files.createDirectory(Paths.get(g.getName() + "/")); }
-			catch (IOException e) { e.printStackTrace(); }
-		});
+        .awaitReady();
     }
-    
-    public EventWaiter getEventWaiter() { return eventWaiter; }
+
+	public EventWaiter getEventWaiter() { return eventWaiter; }
 }

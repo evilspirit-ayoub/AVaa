@@ -1,8 +1,14 @@
 package DSBot.command;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,10 +22,13 @@ import javax.imageio.ImageIO;
 import org.opencv.imgproc.Imgproc;
 
 import DSBot.Library;
+import DSBot.database.model.Ladder;
+import DSBot.database.model.Screen;
 import DSBot.utils.OCRUtils;
-import Ladder.Ladder;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emoji;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -27,13 +36,18 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
 import net.dv8tion.jda.api.entities.MessageReference;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.sourceforge.tess4j.TesseractException;
 
-public class ScreenCommand {
+public class CommandScreen implements CommandExecutor {
 	
-	public static void screen(Library library, String[] args, Message message) throws Exception {
+	private static final String SCALE_FILE = "bareme.txt";
+
+	@Override
+	public void run(MessageReceivedEvent event, Command command, Library library, String[] args) throws Exception {
+		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel();
 		channel.sendTyping().queue();
 		if(!isGoodChannel(channel)) {
@@ -47,42 +61,56 @@ public class ScreenCommand {
 	}
 
 	private static boolean isGoodChannel(MessageChannel channel) {
-		return channel.getName().contains("screen-attaque") || channel.getName().contains("screen-défense");
+		return channel.getName().contains("screen-défense");
 	}
 	
 	private static void removeScreen(String[] args, Message message) throws Exception {
-		if(args.length < 3) throw new Exception("Invalid number of arguments.");
+		EmbedBuilder info = new EmbedBuilder();
+		info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
 		message.addReaction("U+23F2").queue();
-		Pattern pattern = Pattern.compile("^\\d+$");
-		Matcher matcher;
-		String find;
-		List<Message> history = message.getChannel().getHistory().retrievePast(100).complete();
-		List<String> removedMessages = new ArrayList<>();
-		for(int i = 2; i < args.length; i++) {
-			matcher = pattern.matcher(args[i]);
-			if(matcher.find()) {
-				find = matcher.group();
-				for(Message msg : history)
-					if(msg.getId().equals(args[i])) {
-						List<MessageEmbed> embed = message.getEmbeds();
-						if(embed.isEmpty()) removeScreenWithReferenceMessage(msg);
-						else removeScreenWithOriginMessage(msg);
-						removedMessages.add(find);
-					}
+		if(args.length < 3) info.setTitle("Invalid number of arguments.");
+		else if(authorizedToRemoveScreen(message.getMember())) {
+			Pattern pattern = Pattern.compile("^\\d+$");
+			Matcher matcher;
+			String find;
+			List<Message> history = message.getChannel().getHistory().retrievePast(100).complete();
+			List<String> removedMessages = new ArrayList<>();
+			for(int i = 2; i < args.length; i++) {
+				matcher = pattern.matcher(args[i]);
+				if(matcher.find()) {
+					find = matcher.group();
+					for(Message msg : history)
+						if(msg.getId().equals(args[i])) {
+							List<MessageEmbed> embed = message.getEmbeds();
+							if(embed.isEmpty()) removeScreenWithReferenceMessage(msg);
+							else removeScreenWithOriginMessage(msg);
+							Screen.delete(args[i]);
+							removedMessages.add(find);
+						}
+				}
 			}
-		}
-		EmbedBuilder info = new EmbedBuilder()
-				.addField("Removed screen(s) :", removedMessages.stream().collect(Collectors.joining("\n")), false)
-				.setColor(0x0000FF);
+			info.addField("Screen(s) enlevé(s) :", removedMessages.stream().collect(Collectors.joining("\n")), false);
+		} else info.setTitle("Non autorisé.");
 		message.replyEmbeds(info.build()).queue();
 		message.removeReaction("U+23F2").queue();
 	}
 	
+	private static boolean authorizedToRemoveScreen(Member messageSenderMember) {
+		if(messageSenderMember.hasPermission(Permission.VIEW_AUDIT_LOGS)) return true;
+		if(messageSenderMember.hasPermission(Permission.KICK_MEMBERS)) return true;
+		if(messageSenderMember.hasPermission(Permission.BAN_MEMBERS)) return true;
+		return false;
+	}
+	
 	private static void removeScreenWithReferenceMessage(Message origin) throws Exception {
 		MessageReference reference = origin.getMessageReference();
-		if(reference == null) throw new Exception("Message has no reference");
+		EmbedBuilder info = new EmbedBuilder();
+		if(reference == null) {
+			info.setTitle("Le message " + origin.getId() + " n'a pas de réference.");
+			origin.getChannel().sendMessageEmbeds(info.build()).queue();
+			return;
+		}
 		Message context = reference.getMessage();
-		MessageChannel channel = origin.getChannel();
 		String guildName = context.getGuild().getName(), authorName = context.getAuthor().getName();
 		File toDownload = new File(guildName + "/" + authorName);
 		context
@@ -94,11 +122,20 @@ public class ScreenCommand {
 			try {
 				BufferedImage downloaded = ImageIO.read(toDownload);
 				List<String> ocr = filterOcrResult(OCRUtils.OCR(file, 0, 0, (downloaded.getWidth() / 3) - 1, downloaded.getHeight() - 1, Imgproc.THRESH_BINARY_INV));
-				checkOcrResult(ocr);
+				if(!checkOcrResult(ocr)) {
+					info.setTitle("Essayez avec un autre screen mieux cadré et/ou avec un autre theme.");
+					origin.getChannel().sendMessageEmbeds(info.build()).queue();
+					return;
+				}
 				capitalizePseudos(ocr);
 				toDownload.delete();
-				boolean defense = channel.getName().contains("défense") ? true : false;
-				Ladder.update(origin.getGuild(), collectPlayersWhoDeservePoints(channel, ocr), defense, -1);
+				List<String> winners = getWinners(ocr);
+				List<String> loosers = getLoosers(ocr);
+				int indexOfFightContext = ocr.contains("PERCEPTEUR") ? ocr.indexOf("PERCEPTEUR") : ocr.indexOf("PRISME");
+				int indexOfLoosers = ocr.indexOf("PERDANTS");
+				boolean isVictory = indexOfFightContext < indexOfLoosers;
+				String versus = isVictory ? winners.size() + "vs" + loosers.size() : loosers.size() + "vs" + winners.size();
+				Ladder.update(origin.getGuild(), isVictory ? winners : loosers, -1 * getPointsAccordingToScale(versus));
 			} catch(Exception e) { e.printStackTrace(); } finally { origin.removeReaction("U+23F2").queue(); file.delete(); }
 		});
 	}
@@ -142,10 +179,11 @@ public class ScreenCommand {
     	return filtered;
 	}
 	
-	private static void checkOcrResult(List<String> ocr) throws TesseractException, Exception {
-		if(!ocr.contains("GAGNANTS") || !ocr.contains("PERDANTS")) throw new Exception("Wrong ocr result.");
-		if(!ocr.contains("PERCEPTEUR") && !ocr.contains("PRISME")) throw new Exception("Wrong ocr result.");
-		if(isBadNumberOfPlayers(ocr)) throw new Exception("Wrong ocr result.");
+	private static boolean checkOcrResult(List<String> ocr) throws TesseractException, Exception {
+		if(!ocr.contains("GAGNANTS") || !ocr.contains("PERDANTS")) return false;
+		if(!ocr.contains("PERCEPTEUR") && !ocr.contains("PRISME")) return false;
+		if(isBadNumberOfPlayers(ocr)) return false;
+		return true;
 	}
 	
 	private static boolean isBadNumberOfPlayers(List<String> ocr) {
@@ -174,15 +212,6 @@ public class ScreenCommand {
 		return ocr;
 	}
 	
-	private static List<String> collectPlayersWhoDeservePoints(MessageChannel channel, List<String> ocr) {
-		boolean attack = channel.getName().contains("attaque") ? true : false;
-		int indexLoosers = ocr.indexOf("PERDANTS");
-		int indexFightContext = ocr.contains("PERCEPTEUR") ? ocr.indexOf("PERCEPTEUR") : ocr.indexOf("PRISME");
-		boolean victory = indexFightContext < indexLoosers ? (attack ? false : true) : (attack ? true : false);
-		if(victory) return getWinners(ocr);
-		return getLoosers(ocr);
-	}
-	
 	private static List<String> getWinners(List<String> ocr) {
     	List<String> res = new ArrayList<>();
     	for(int i = 1; i < ocr.size(); i++) {
@@ -203,20 +232,23 @@ public class ScreenCommand {
     	return res;
     }
     
-    private static void removeScreenWithOriginMessage(Message message) {
+    private static void removeScreenWithOriginMessage(Message message) throws SQLException, FileNotFoundException, IOException {
     	MessageEmbed embed = message.getEmbeds().get(0);
 		List<Field> fields = embed.getFields();
 		List<String> winners = Arrays.asList(fields.get(0).getValue().split("\n"));
 		List<String> loosers = Arrays.asList(fields.get(1).getValue().split("\n"));
-		boolean defense = embed.getTitle().contains("Défense");
 		boolean victory = embed.getDescription().contains("Victoire");
-    	try { Ladder.update(message.getGuild(), victory ? winners : loosers, defense, -1); }
-    	catch (ClassNotFoundException | IOException | InterruptedException e1) { e1.printStackTrace(); }
+		String versus = embed.getDescription().split(" ")[1].replaceAll("\n", " ");
+		Ladder.update(message.getGuild(), victory ? winners : loosers, getPointsAccordingToScale(versus));
 	}
     
     private static void addScreen(Library library, String[] args, Message message) throws Exception {
-    	List<Attachment> attachments = message.getAttachments()	;
-    	if(attachments.isEmpty()) throw new Exception("No attachments.");
+    	List<Attachment> attachments = message.getAttachments();
+    	EmbedBuilder info = new EmbedBuilder();
+    	if(attachments.isEmpty()) {
+    		message.replyEmbeds(info.setTitle("No attachments.").build()).queue();
+    		return;
+    	}
     	message.addReaction("U+23F2").queue();
     	String guildName = message.getGuild().getName(), authorName = message.getAuthor().getName();
 		File toDownload = new File(guildName + "/" + authorName);
@@ -229,15 +261,15 @@ public class ScreenCommand {
 				checkOcrResult(ocr);
 				capitalizePseudos(ocr);
 				toDownload.delete();
-				boolean attack = message.getChannel().getName().contains("attaque") ? true : false;
-				int indexLoosers = ocr.indexOf("PERDANTS");
-				int indexFightContext = ocr.contains("PERCEPTEUR") ? ocr.indexOf("PERCEPTEUR") : ocr.indexOf("PRISME");
-				boolean victory = indexFightContext < indexLoosers ? (attack ? false : true) : (attack ? true : false);
 				List<String> winners = getWinners(ocr);
 				List<String> loosers = getLoosers(ocr);
-				EmbedBuilder info = new EmbedBuilder()
-				.setTitle((attack ? "Attaque " : "Défense ") + (ocr.contains("PERCEPTEUR") ? "percepteur" : "prisme"))
-				.setDescription((victory ? "Victoire " : "Défaite ") + winners.size() + "vs" + loosers.size())
+				int indexOfFightContext = ocr.contains("PERCEPTEUR") ? ocr.indexOf("PERCEPTEUR") : ocr.indexOf("PRISME");
+				int indexOfLoosers = ocr.indexOf("PERDANTS");
+				boolean isVictory = indexOfFightContext < indexOfLoosers;
+				String versus = isVictory ? winners.size() + "vs" + loosers.size() : loosers.size() + "vs" + winners.size();
+				info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl())
+				.setTitle("Défense " + (ocr.contains("PERCEPTEUR") ? "percepteur" : "prisme"))
+				.setDescription((isVictory ? "Victoire " : "Défaite ") + versus)
 				.addField("Gagnants :", winners.stream().collect(Collectors.joining("\n")), false)
 				.addField("Perdants :", loosers.stream().collect(Collectors.joining("\n")), false);
 				message.replyEmbeds(info.build()).setActionRow(
@@ -253,8 +285,13 @@ public class ScreenCommand {
 			                	String selection = event.getComponentId().split(":")[3];
 			                	if(selection.equals("white_check_mark")) {
 			                		info.setColor(0x00FF00);
-				                	try { Ladder.update(message.getGuild(), victory ? winners : loosers, attack ? false : true, 1); }
-				                	catch (ClassNotFoundException | IOException | InterruptedException e1) { e1.printStackTrace(); }
+			                		try {
+			                			double points = getPointsAccordingToScale(versus);
+			                			info.addField("Points : ", String.valueOf(points), false);
+			                			Screen screen = new Screen(message.getId(), isVictory ? winners : loosers, isVictory, versus, points, LocalDate.now());
+			                			screen.insert();
+			                			Ladder.update(message.getGuild(), isVictory ? winners : loosers, getPointsAccordingToScale(versus));
+			                		}catch (SQLException | IOException e) { e.printStackTrace(); }
 				                	info.setFooter(replyMessage.getId());
 			                	} else info.setColor(0xFF0000);
 			                	replyMessage.editMessageEmbeds(info.build()).queue();
@@ -280,5 +317,15 @@ public class ScreenCommand {
     private static boolean equalsAny(String buttonId) {
         return buttonId.equals("example-bot:button:symbols:white_check_mark") ||
                buttonId.equals("example-bot:button:symbols:x");
+    }
+    
+    private static double getPointsAccordingToScale(String versus) throws FileNotFoundException, IOException {
+	    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(SCALE_FILE)))) {
+	    	String line;
+	        while ((line = br.readLine()) != null)
+	        	if(line.contains(versus))
+	        		return Double.parseDouble(line.split(" ")[1].replaceAll("\n", ""));
+	    }
+	    return 0;
     }
 }

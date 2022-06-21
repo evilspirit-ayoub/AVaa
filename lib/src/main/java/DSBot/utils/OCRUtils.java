@@ -34,8 +34,8 @@ public class OCRUtils {
 		ITesseract instance = new Tesseract();
 		File tessDataFolder = LoadLibs.extractTessResources("tessdata");
 		instance.setDatapath(tessDataFolder.getAbsolutePath());
-		File tmpFolder = LoadLibs.extractTessResources("linux-x86-64");
-		System.setProperty("java.library.path", tmpFolder.getPath());
+		/*File tmpFolder = LoadLibs.extractTessResources("linux-x86-64");
+		System.setProperty("java.library.path", tmpFolder.getPath());*/
 		BufferedImage image = ImageIO.read(file);
 		if(!verification(image, startX, startY, width, height)) return new ArrayList<>();
 		List<String> res = new ArrayList<>();
@@ -92,7 +92,7 @@ public class OCRUtils {
 	
 	public static BufferedImage preprocess(File file, Rect subimageDimension, boolean resize, int type) throws Exception {
 		Mat subimage = new Mat(Imgcodecs.imread(file.getPath()), subimageDimension);
-		if(resize) subimage = ImageUtils.resizeMat(subimage, subimageDimension.width * 8, subimageDimension.height * 8);
+		if(resize) subimage = ImageUtils.resizeMat(subimage, subimageDimension.width * 2, subimageDimension.height * 2);
 		Mat gray = new Mat();
         Imgproc.cvtColor(subimage, gray, Imgproc.COLOR_BGR2GRAY);
 		Mat threshold = new Mat();
