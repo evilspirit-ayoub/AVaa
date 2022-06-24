@@ -26,7 +26,7 @@ public class LadderDAO extends DAO {
 	
 	public void insertLadder(Ladder ladder) throws SQLException {
 		try (Connection connection = getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(INSERT_LADDER)) {
-			preparedStatement.setString(1, ladder.getPseudos().stream().collect(Collectors.joining(",")));
+			preparedStatement.setString(1, ladder.getDiscordIds().stream().collect(Collectors.joining(",")));
 			preparedStatement.setString(2, ladder.getPositions().stream().map(position -> String.valueOf(position)).collect(Collectors.joining(",")));
 			preparedStatement.setString(3, ladder.getDate());
 			preparedStatement.executeUpdate();
@@ -88,7 +88,7 @@ public class LadderDAO extends DAO {
 	public boolean updateLadder(Ladder ladder) throws SQLException {
 		boolean rowUpdated;
 		try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(UPDATE_LADDER_BY_DATE);) {
-			statement.setString(1, ladder.getPseudos().stream().collect(Collectors.joining(",")));
+			statement.setString(1, ladder.getDiscordIds().stream().collect(Collectors.joining(",")));
 			statement.setString(2, ladder.getPositions().stream().map(pos -> String.valueOf(pos)).collect(Collectors.joining(",")));
 			statement.setString(3, ladder.getDate());
 			rowUpdated = statement.executeUpdate() > 0;

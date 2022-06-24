@@ -34,7 +34,7 @@ public class CommandUnlink implements CommandExecutor {
 		if(args.length == 1) {
 			info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
 			List<User> unlikedUsersList = User.getAllUnlinkedUsers();
-			info.addField("Les pseudos non encore linké :", unlikedUsersList.stream().map(user -> user.getPseudo()).collect(Collectors.joining(", ")), false);
+			info.addField("Les pseudos non encore link :", unlikedUsersList.stream().map(user -> user.getPseudo()).collect(Collectors.joining(", ")), false);
 		} else if(args.length < 3) {
 			info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
 			info.setTitle("Pour pouvoir unlink : !unlink @DiscordTag unlinkedName");
@@ -60,8 +60,8 @@ public class CommandUnlink implements CommandExecutor {
 				Ladder.updatePoisitonsForLinkedUsers();
 				Ladder.updateThisMonthLadder();
 				Ladder.refreshDiscordChannelLadder(message.getGuild());
-				info.addField("Les pseudos suivant ont été unlink :", toUnlink.stream().collect(Collectors.joining(", ")), false);
-			} else info.setTitle("Non autorisé.");
+				info.addField("Les pseudos suivant ont ete unlink :", toUnlink.stream().collect(Collectors.joining(", ")), false);
+			} else info.setTitle("Non autorise.");
 		}
 		message.replyEmbeds(info.build()).queue();
 	}

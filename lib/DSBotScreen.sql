@@ -8,8 +8,8 @@ CREATE TABLE Users (
 	pseudo					varchar(20),
 	generalLadderPosition	int(5),
 	monthLadderPosition		int(5),
-	totalPoints				int(5),
-	monthPoints				int(5),
+	totalPoints				float(10),
+	monthPoints				float(10),
 	numberDefencesTotal		int(5),
 	numberDefencesMonth		int(5)
 ) ENGINE = InnoDB;

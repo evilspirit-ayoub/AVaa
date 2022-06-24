@@ -36,7 +36,7 @@ public class CommandStats implements CommandExecutor {
 			info.addField("Month points : ", String.valueOf(linkedPseudos.stream().mapToDouble(user -> user.getMonthPoints()).sum()), true);
 			info.addField("Total defenses : ", String.valueOf(linkedPseudos.stream().mapToInt(user -> user.getNumberDefencesTotal()).sum()), true);
 			info.addField("Month defenses : ", String.valueOf(linkedPseudos.stream().mapToInt(user -> user.getNumberDefencesMonth()).sum()), true);
-		} else info.setTitle("Le membre " + memberToGetInfos.getUser().getName() + " doit être link à au moins un pseudo pour pouvoir récupérer ses informations.");
+		} else info.setTitle("Le membre " + memberToGetInfos.getUser().getName() + " doit etre link a au moins un pseudo pour pouvoir recuperer ses informations.");
 		message.replyEmbeds(info.build()).queue();
 	}
 }

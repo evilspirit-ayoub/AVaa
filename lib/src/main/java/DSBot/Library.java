@@ -21,7 +21,7 @@ public class Library {
 	
     public static void main(String ... args) throws Exception {
     	//new Library().start(System.getenv().get("TOKEN"));
-    	new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GwwLZo.UUZPc1M85SmKs8mszPr4lNJ1vhrZAte_Pgo0SI");
+    	new Library().start("");
     }
     
     public void start(String token) throws LoginException, InterruptedException, IOException, ClassNotFoundException {

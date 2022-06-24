@@ -1,4 +1,4 @@
-package DSBot.utils;
+package DSBot.utils.image;
 
 import java.awt.AWTException;
 import java.awt.Color;

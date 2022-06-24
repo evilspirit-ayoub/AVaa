@@ -1,4 +1,4 @@
-package DSBot.utils;
+package DSBot.utils.ocr;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -13,6 +13,7 @@ import org.opencv.core.Rect;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+import DSBot.utils.image.ImageUtils;
 import net.sourceforge.tess4j.ITessAPI.TessPageIteratorLevel;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;

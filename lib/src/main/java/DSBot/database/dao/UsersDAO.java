@@ -14,6 +14,7 @@ public class UsersDAO extends DAO {
 	private static final String INSERT_USER = "INSERT INTO Users (discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
 	private static final String SELECT_USER_BY_PSEUDO = "select * from Users where pseudo =?";
 	private static final String SELECT_USERS_BY_DISCORD_ID = "select * from Users where discordId =?";
+	private static final String SELECT_LINKED_USERS_GROUP_BY_DISCORD_ID = "select * from Users where discordId is not null group by discordId;";
 	private static final String SELECT_LINKED_USERS_GROUP_BY_ID_ORDER_BY_POSITION = "select * from Users where discordId is not null group by discordId order by ? desc;";
 	private static final String SELECT_USERS_GROUP_BY_ID_ORDER_BY_POSITION = "select * from Users group by discordId order by ? desc;";
 	private static final String SELECT_ALL_USERS = "select * from Users";
@@ -32,8 +33,8 @@ public class UsersDAO extends DAO {
 			preparedStatement.setString(2, user.getPseudo());
 			preparedStatement.setInt(3, user.getGeneralLadderPosition());
 			preparedStatement.setInt(4, user.getMonthLadderPosition());
-			preparedStatement.setDouble(5, user.getTotalPoints());
-			preparedStatement.setDouble(6, user.getMonthPoints());
+			preparedStatement.setFloat(5, user.getTotalPoints());
+			preparedStatement.setFloat(6, user.getMonthPoints());
 			preparedStatement.setInt(7, user.getNumberDefencesTotal());
 			preparedStatement.setInt(8, user.getNumberDefencesMonth());
 			preparedStatement.executeUpdate();
@@ -49,8 +50,8 @@ public class UsersDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				int generalLadderPosition = rs.getInt("generalLadderPosition");
 				int monthLadderPosition = rs.getInt("monthLadderPosition");
-				double totalPoints = rs.getDouble("totalPoints");
-				double monthPoints = rs.getDouble("monthPoints");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
 				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
 				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
 				users.add(new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth));
@@ -68,8 +69,8 @@ public class UsersDAO extends DAO {
 				String discordId = rs.getString("discordId");
 				int generalLadderPosition = rs.getInt("generalLadderPosition");
 				int monthLadderPosition = rs.getInt("monthLadderPosition");
-				double totalPoints = rs.getDouble("totalPoints");
-				double monthPoints = rs.getDouble("monthPoints");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
 				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
 				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
 				user = new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth);
@@ -87,8 +88,8 @@ public class UsersDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				int generalLadderPosition = rs.getInt("generalLadderPosition");
 				int monthLadderPosition = rs.getInt("monthLadderPosition");
-				double totalPoints = rs.getDouble("totalPoints");
-				double monthPoints = rs.getDouble("monthPoints");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
 				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
 				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
 				users.add(new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth));
@@ -113,8 +114,8 @@ public class UsersDAO extends DAO {
 			statement.setString(2, user.getPseudo());
 			statement.setInt(3, user.getGeneralLadderPosition());
 			statement.setInt(4, user.getMonthLadderPosition());
-			statement.setDouble(5, user.getTotalPoints());
-			statement.setDouble(6, user.getMonthPoints());
+			statement.setFloat(5, user.getTotalPoints());
+			statement.setFloat(6, user.getMonthPoints());
 			statement.setInt(7, user.getNumberDefencesTotal());
 			statement.setInt(8, user.getNumberDefencesMonth());
 			statement.setString(9, user.getPseudo());
@@ -132,8 +133,8 @@ public class UsersDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				int generalLadderPosition = rs.getInt("generalLadderPosition");
 				int monthLadderPosition = rs.getInt("monthLadderPosition");
-				double totalPoints = rs.getDouble("totalPoints");
-				double monthPoints = rs.getDouble("monthPoints");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
 				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
 				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
 				users.add(new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth));
@@ -151,8 +152,8 @@ public class UsersDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				int generalLadderPosition = rs.getInt("generalLadderPosition");
 				int monthLadderPosition = rs.getInt("monthLadderPosition");
-				double totalPoints = rs.getDouble("totalPoints");
-				double monthPoints = rs.getDouble("monthPoints");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
 				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
 				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
 				users.add(new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth));
@@ -182,8 +183,8 @@ public class UsersDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				int generalLadderPosition = rs.getInt("generalLadderPosition");
 				int monthLadderPosition = rs.getInt("monthLadderPosition");
-				double totalPoints = rs.getDouble("totalPoints");
-				double monthPoints = rs.getDouble("monthPoints");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
 				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
 				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
 				users.add(new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth));
@@ -202,8 +203,27 @@ public class UsersDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				int generalLadderPosition = rs.getInt("generalLadderPosition");
 				int monthLadderPosition = rs.getInt("monthLadderPosition");
-				double totalPoints = rs.getDouble("totalPoints");
-				double monthPoints = rs.getDouble("monthPoints");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
+				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
+				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
+				users.add(new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth));
+			}
+		} catch (SQLException e) { printSQLException(e); }
+		return users;
+	}
+	
+	public List<User> selectAllLinkedUsersGroupByDiscordId() {
+		List<User> users = new ArrayList<>();
+		try (Connection connection = getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(SELECT_LINKED_USERS_GROUP_BY_DISCORD_ID);) {
+			ResultSet rs = preparedStatement.executeQuery();
+			while (rs.next()) {
+				String discordId = rs.getString("discordId");
+				String pseudo = rs.getString("pseudo");
+				int generalLadderPosition = rs.getInt("generalLadderPosition");
+				int monthLadderPosition = rs.getInt("monthLadderPosition");
+				float totalPoints = rs.getFloat("totalPoints");
+				float monthPoints = rs.getFloat("monthPoints");
 				int numberDefencesTotal = rs.getInt("numberDefencesTotal");
 				int numberDefencesMonth = rs.getInt("numberDefencesMonth");
 				users.add(new User(discordId, pseudo, generalLadderPosition, monthLadderPosition, totalPoints, monthPoints, numberDefencesTotal, numberDefencesMonth));

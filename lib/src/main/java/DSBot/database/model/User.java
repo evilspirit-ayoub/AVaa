@@ -21,7 +21,7 @@ public class User {
 	
 	private String discordId, pseudo;
 	private int generalLadderPosition, monthLadderPosition;
-	private double totalPoints, monthPoints;
+	private float totalPoints, monthPoints;
 	private int numberDefencesTotal, numberDefencesMonth;
 	
 	public User(String pseudo) {
@@ -35,7 +35,7 @@ public class User {
 		numberDefencesMonth = 0;
 	}
 
-	public User(String discordId, String pseudo, int generalLadderPosition, int monthLadderPosition, double totalPoints, double monthPoints, int numberDefencesTotal, int numberDefencesMonth) {
+	public User(String discordId, String pseudo, int generalLadderPosition, int monthLadderPosition, float totalPoints, float monthPoints, int numberDefencesTotal, int numberDefencesMonth) {
 		this.discordId = discordId;
 		this.pseudo = pseudo;
 		this.generalLadderPosition = generalLadderPosition;
@@ -52,14 +52,14 @@ public class User {
 	public void setPseudo(String pseudo) { this.pseudo = pseudo; }
 	public int getGeneralLadderPosition() { return generalLadderPosition; }
 	public int getMonthLadderPosition() { return monthLadderPosition; }
-	public double getTotalPoints() { return totalPoints; }
-	public double getMonthPoints() { return monthPoints; }
+	public float getTotalPoints() { return totalPoints; }
+	public float getMonthPoints() { return monthPoints; }
 	public int getNumberDefencesTotal() { return numberDefencesTotal; }
 	public int getNumberDefencesMonth() { return numberDefencesMonth; }
 	public void setGeneralLadderPosition(int generalLadderPosition) { this.generalLadderPosition = generalLadderPosition; }
 	public void setMonthLadderPosition(int monthLadderPosition) { this.monthLadderPosition = monthLadderPosition; }
-	public void setTotalPoints(double totalPoints) { this.totalPoints = totalPoints; }
-	public void setMonthPoints(double monthPoints) { this.monthPoints = monthPoints; }
+	public void setTotalPoints(float totalPoints) { this.totalPoints = totalPoints; }
+	public void setMonthPoints(float monthPoints) { this.monthPoints = monthPoints; }
 	public void setNumberDefencesTotal(int numberDefencesTotal) { this.numberDefencesTotal = numberDefencesTotal; }
 	public void setNumberDefencesMonth(int numberDefencesMonth) { this.numberDefencesMonth = numberDefencesMonth; }
 	public void insert() throws SQLException { usersDAO.insertUser(this); }
@@ -69,6 +69,7 @@ public class User {
 	public static List<User> getAllUsers() throws SQLException { return usersDAO.selectAllUsers(); }
 	public static List<User> getAllUsersByDiscordId(String discordId) throws SQLException { return usersDAO.selectUsersByDiscordId(discordId); }
 	public static List<User> getAllUsersGroupByDiscordIdOrderBy(String columnName) throws SQLException { return usersDAO.selectUsersGroupByDiscordIdOrderBy(columnName); }
+	public static List<User> getAllLinkedUsersGroupByDiscordId() throws SQLException { return usersDAO.selectAllLinkedUsersGroupByDiscordId(); }
 	public static List<User> getAllLinkedUsersGroupByDiscordIdOrderBy(String columnName) throws SQLException { return usersDAO.selectLinkedUsersGroupByDiscordIdOrderBy(columnName); }
 	public static List<User> getAllLinkedUsers() throws SQLException { return usersDAO.selectAllLinkedUsers(); }
 	public static List<User> getAllUnlinkedUsers() throws SQLException { return usersDAO.selectAllUnlinkedUsers(); }
