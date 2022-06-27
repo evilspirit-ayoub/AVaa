@@ -13,12 +13,12 @@ import DSBot.database.model.Ladder;
 
 public class LadderDAO extends DAO {
 	
-	private static final String INSERT_LADDER = "INSERT INTO Ladders (pseudos, positions, date) VALUES (?, ?, ?);";
+	private static final String INSERT_LADDER = "INSERT INTO Ladders (pseudos, positions, points, date) VALUES (?, ?, ?, ?);";
 	private static final String SELECT_LADDER_BY_ID = "select * from Ladders where id = ?;";
 	private static final String SELECT_LADDER_BY_DATE = "select * from Ladders where date = ?;";
 	private static final String SELECT_ALL_LADDERS = "select * from Ladders;";
 	private static final String DELETE_LADDER_BY_DATE = "delete from Ladders where date = ?;";
-	private static final String UPDATE_LADDER_BY_DATE = "update Ladders set pseudos = ?, positions = ? where date = ?;";;
+	private static final String UPDATE_LADDER_BY_DATE = "update Ladders set pseudos = ?, positions = ?, points = ? where date = ?;";;
 	
 	public LadderDAO(String driverClass, String jdbcURL, String jdbcUsername, String jdbcPassword) {
 		super(driverClass, jdbcURL, jdbcUsername, jdbcPassword);
@@ -28,7 +28,8 @@ public class LadderDAO extends DAO {
 		try (Connection connection = getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(INSERT_LADDER)) {
 			preparedStatement.setString(1, ladder.getDiscordIds().stream().collect(Collectors.joining(",")));
 			preparedStatement.setString(2, ladder.getPositions().stream().map(position -> String.valueOf(position)).collect(Collectors.joining(",")));
-			preparedStatement.setString(3, ladder.getDate());
+			preparedStatement.setString(3, ladder.getPoints().stream().map(points -> String.valueOf(points)).collect(Collectors.joining(",")));
+			preparedStatement.setString(4, ladder.getDate());
 			preparedStatement.executeUpdate();
 		} catch (SQLException e) { printSQLException(e); }
 	}
@@ -41,8 +42,12 @@ public class LadderDAO extends DAO {
 			while (rs.next()) {
 				String pseudos = rs.getString("pseudos");
 				String positions = rs.getString("positions");
+				String points = rs.getString("points");
 				String date = rs.getString("date");
-				ladder = new Ladder(Arrays.asList(pseudos.split(",")), Arrays.asList(positions.split(",")).stream().map(str -> Integer.valueOf(str)).toList(), date);
+				ladder = new Ladder(Arrays.asList(pseudos.split(",")),
+						Arrays.asList(positions.split(",")).stream().map(str -> Integer.valueOf(str)).toList(),
+						Arrays.asList(points.split(",")).stream().map(str -> Float.valueOf(str)).toList(),
+						date);
 			}
 		} catch (SQLException e) { printSQLException(e); }
 		return ladder;
@@ -56,7 +61,11 @@ public class LadderDAO extends DAO {
 			while (rs.next()) {
 				String pseudos = rs.getString("pseudos");
 				String positions = rs.getString("positions");
-				ladder = new Ladder(Arrays.asList(pseudos.split(",")), Arrays.asList(positions.split(",")).stream().map(str -> Integer.valueOf(str)).toList(), date);
+				String points = rs.getString("points");
+				ladder = new Ladder(Arrays.asList(pseudos.split(",")),
+						Arrays.asList(positions.split(",")).stream().map(str -> Integer.valueOf(str)).toList(),
+						Arrays.asList(points.split(",")).stream().map(str -> Float.valueOf(str)).toList(),
+						date);
 			}
 		} catch (SQLException e) { printSQLException(e); }
 		return ladder;
@@ -69,8 +78,12 @@ public class LadderDAO extends DAO {
 			while (rs.next()) {
 				String pseudos = rs.getString("pseudos");
 				String positions = rs.getString("positions");
+				String points = rs.getString("points");
 				String date = rs.getString("date");
-				ladders.add(new Ladder(Arrays.asList(pseudos.split(",")), Arrays.asList(positions.split(",")).stream().map(str -> Integer.valueOf(str)).toList(), date));
+				ladders.add(new Ladder(Arrays.asList(pseudos.split(",")),
+						Arrays.asList(positions.split(",")).stream().map(str -> Integer.valueOf(str)).toList(),
+						Arrays.asList(points.split(",")).stream().map(str -> Float.valueOf(str)).toList(),
+						date));
 			}
 		} catch (SQLException e) { printSQLException(e); }
 		return ladders;
@@ -90,7 +103,8 @@ public class LadderDAO extends DAO {
 		try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(UPDATE_LADDER_BY_DATE);) {
 			statement.setString(1, ladder.getDiscordIds().stream().collect(Collectors.joining(",")));
 			statement.setString(2, ladder.getPositions().stream().map(pos -> String.valueOf(pos)).collect(Collectors.joining(",")));
-			statement.setString(3, ladder.getDate());
+			statement.setString(3, ladder.getPoints().stream().map(pts -> String.valueOf(pts)).collect(Collectors.joining(",")));
+			statement.setString(4, ladder.getDate());
 			rowUpdated = statement.executeUpdate() > 0;
 		}
 		return rowUpdated;

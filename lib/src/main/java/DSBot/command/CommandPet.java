@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import DSBot.Library;
+import DSBot.exception.DSBotException;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -19,5 +20,6 @@ public class CommandPet implements CommandExecutor {
 			for(int i = 0; i < 45; i++) s += emote.get(0).getAsMention() + " ";
 			message.getChannel().sendMessage(s).queue();
 		}
+		else throw new DSBotException(message, "Emote petthefrizouzou non trouve.");
 	}
 }

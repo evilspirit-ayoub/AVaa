@@ -28,8 +28,9 @@ java {
 }
 
 dependencies {
-	compileJava {options.encoding = "UTF-8"}
-	compileTestJava {options.encoding = "UTF-8"}
+	compileJava.options.encoding = 'UTF-8'
+	//compileJava {options.encoding = "UTF-8"}
+	//compileTestJava {options.encoding = "UTF-8"}
 	//implementation fileTree('opencv')
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
@@ -60,6 +61,10 @@ dependencies {
 	
 	// https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client
 	implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.5'	
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
 }
 
 tasks.named('test') {

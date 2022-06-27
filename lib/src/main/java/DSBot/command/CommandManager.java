@@ -1,12 +1,8 @@
 package DSBot.command;
 
-import java.util.List;
-
 import com.google.common.base.Optional;
 
 import DSBot.Library;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
@@ -33,16 +29,13 @@ public class CommandManager extends ListenerAdapter {
 		commandRegistry.addCommand(new Command("points", "Ajoute/Retire des points a un pseudo existant dans la base de donnees.", new CommandPoints(),"pts", "points"));
 		commandRegistry.addCommand(new Command("help", "Ajoute/Retire des points à un pseudo existant dans la base de donnees.", new CommandHelp(),"hlp", "help"));
 		commandRegistry.addCommand(new Command("pet", "Pet the frizouzou", new CommandPet(),"pet"));
+		commandRegistry.addCommand(new Command("resetMonthPoints", "Reinisialise les points et defence du mois en cours.", new CommandResetMonthPoints(),"rmp", "resetMonthPoints"));
+		commandRegistry.addCommand(new Command("ratio", "Ratio le dernier message du membre cible.", new CommandRatio(),"ratio"));
 	}
 	
 	public void onMessageReceived(MessageReceivedEvent event) {
-		if(event.getAuthor().getId().equals("300644815996059648")) {
-			Message message = event.getMessage();
-			List<Emote> emote = message.getGuild().getEmotesByName("petthefrizouzou", false);
-			if(!emote.isEmpty()) message.addReaction(emote.get(0)).queue();
-		}
 		String[] args = event.getMessage().getContentRaw().split(" ");
-		if(args[0].length() < PREFIX.length()) return;
+		if(!args[0].startsWith(PREFIX)) return;
 		String commandName = args[0].substring(PREFIX.length());
 		Optional<Command> cmd = commandRegistry.getByAliases(commandName);
 		if(cmd.isPresent()) {

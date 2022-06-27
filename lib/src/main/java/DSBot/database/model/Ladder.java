@@ -4,10 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,9 +17,13 @@ import DSBot.database.dao.LadderDAO;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
-public class Ladder {
+public class Ladder extends ListenerAdapter {
 	
 	public final static LadderDAO ladderDAO;
 	static {
@@ -35,11 +36,13 @@ public class Ladder {
 	
 	private List<String> discordIds;
 	private List<Integer> positions;
+	private List<Float> points;
 	private String date;
 	
-	public Ladder(List<String> discordIds, List<Integer> positions, String date) {
+	public Ladder(List<String> discordIds, List<Integer> positions, List<Float> points, String date) {
 		this.discordIds = discordIds;
 		this.positions = positions;
+		this.points = points;
 		this.date = date;
 	}
 	
@@ -47,6 +50,8 @@ public class Ladder {
 	public void setDiscordIds(List<String> discordIds) { this.discordIds = discordIds; }
 	public List<Integer> getPositions() { return positions; }
 	public void setPositions(List<Integer> positions) { this.positions = positions; }
+	public List<Float> getPoints() { return points; }
+	public void setPoints(List<Float> points) { this.points = points; }
 	public String getDate() { return date; }
 	public void setDate(String date) { this.date = date; }
 	public void insert() throws SQLException { ladderDAO.insertLadder(this); }
@@ -57,8 +62,8 @@ public class Ladder {
 	public static Ladder getLadderBydDate(String date) throws SQLException { return ladderDAO.selectLadderByDate(date); }
 	public static List<Ladder> getAllLadders() throws SQLException { return ladderDAO.selectAllLadders(); }
 	
-	public static void update(Guild guild, List<String> pseudos, float points) throws SQLException {
-		if(isNewMonth()) resetMonthPoints();
+	public static void updatePoints(Guild guild, List<String> pseudos, float points) throws SQLException {
+		if(isNewMonth()) resetMonthPoints(guild);
 		for(String pseudo : pseudos) {
 			User user = User.getUserByPseudo(pseudo);
 			if(user == null) {
@@ -77,9 +82,6 @@ public class Ladder {
 				user.update();
 			}
 		}
-		updatePoisitonsForLinkedUsers();
-		updateThisMonthLadder();
-		refreshDiscordChannelLadder(guild);
 	}
 
 	public static void updatePoisitonsForLinkedUsers() throws SQLException {
@@ -120,12 +122,22 @@ public class Ladder {
 		return lastScreen == null ? false : !lastScreen.getDate().getMonth().equals(LocalDate.now().getMonth());
 	}
 	
-	private static void resetMonthPoints() throws SQLException {
+	private static void resetMonthPoints(Guild guild) throws SQLException {
 		List<User> users = User.getAllUsers();
 		for(User user : users) {
 			user.setMonthPoints(0);
+			user.setNumberDefencesMonth(0);
 			user.update();
 		}
+		updatePoisitonsForLinkedUsers();
+		updateThisMonthLadder();
+		refreshDiscordChannelLadder(guild);
+		guild
+		.getTextChannels()
+		.stream()
+		.filter(channel -> channel.getName().contains("screen-defense"))
+		.findFirst()
+		.ifPresent(channel -> channel.sendMessage("Le premier screen du mois vient d etre poste et valide. Le compteur de point et defense du mois en cours ont ete reinitialise.").queue());
 	}
 	
 	private static Map<String, Float> sortMapByDouble(Map<String, Float> map) {
@@ -145,18 +157,20 @@ public class Ladder {
 	}
 	
 	public static void updateThisMonthLadder() throws SQLException {
-		List<User> monthLadderUsers = User.getAllLinkedUsersGroupByDiscordIdOrderBy("monthLadderPosition");
+		List<User> monthLadderUsers = User.getAllLinkedUsersGroupByDiscordIdSumMonthPointsdOrderByMonthPoints();
 		if(monthLadderUsers.isEmpty()) return;
 		String date = LocalDate.now().getMonth().toString() + "/" + LocalDate.now().getYear();
 		Ladder thisMonthLadder = getLadderBydDate(date);
 		List<String> discordIds = monthLadderUsers.stream().map(user -> user.getDiscordId()).toList();
 		List<Integer> positions = monthLadderUsers.stream().map(user -> user.getMonthLadderPosition()).toList();
+		List<Float> points = monthLadderUsers.stream().map(user -> user.getMonthPoints()).toList();
 		if(thisMonthLadder == null) {
-			Ladder ladder = new Ladder(discordIds, positions, date);
+			Ladder ladder = new Ladder(discordIds, positions, points, date);
 			ladder.insert();
 		} else {
 			thisMonthLadder.setDiscordIds(discordIds);
 			thisMonthLadder.setPositions(positions);
+			thisMonthLadder.setPoints(points);
 			thisMonthLadder.update();
 		}
 	}
@@ -165,47 +179,91 @@ public class Ladder {
 		guild
 		.getTextChannels()
 		.stream()
-		.filter(channel -> channel.getName().equals("classement"))
+		.filter(channel -> channel.getName().contains("classement"))
 		.findFirst()
 		.ifPresent(channel -> {
 			try {
-				EmbedBuilder info = new EmbedBuilder();
-				List<User> allLinkedUsers = User.getAllLinkedUsersGroupByDiscordId();
-				Map<String, Float> unsortedGeneralPositions = new HashMap<>();
-				Map<String, Float> unsortedMonthPositions = new HashMap<>();
-				allLinkedUsers.stream()
-				.forEach(user -> {
-					try {
-						List<User> links = User.getAllUsersByDiscordId(user.getDiscordId());
-						unsortedGeneralPositions.put(user.getDiscordId(), (float) 0);
-						unsortedMonthPositions.put(user.getDiscordId(), (float) 0);
-						for(User link : links) {
-							unsortedGeneralPositions.replace(user.getDiscordId(), unsortedGeneralPositions.get(user.getDiscordId()) + link.getTotalPoints());
-							unsortedMonthPositions.replace(user.getDiscordId(), unsortedMonthPositions.get(user.getDiscordId()) + link.getMonthPoints());
-						}
-					} catch (SQLException e) { e.printStackTrace(); }
-				});
-				Map<String, Float> sortedGeneralPositions = sortMapByDouble(unsortedGeneralPositions);
-				Map<String, Float> sortedMonthPositions = sortMapByDouble(unsortedMonthPositions);
-				List<String> ladder = new ArrayList<>();
-				sortedGeneralPositions
-				.forEach((id, points) -> ladder.add("#" + findPosition(id, sortedGeneralPositions) + " " + guild.getMemberById(id).getUser().getAsMention() + " (" + points + " points)"));
-				Collections.reverse(ladder);
-				info.addField("GENERAL :", ladder.stream().collect(Collectors.joining("\n")), true);
-				ladder.clear();
-				sortedMonthPositions
-				.forEach((id, points) -> ladder.add("#" + findPosition(id, sortedMonthPositions) + " " + guild.getMemberById(id).getUser().getAsMention() + " (" + points + " points)"));
-				Collections.reverse(ladder);
-				info.addField(LocalDate.now().getMonth() + " :", ladder.stream().collect(Collectors.joining("\n")), true);
-				info.setFooter("Last update : " + DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").format(LocalDateTime.now()));
+				List<User> generalLadderUsers = User.getAllLinkedUsersGroupByDiscordIdSumTotalPointsdOrderByTotalPoints();
+				List<User> monthLadderUsers = User.getAllLinkedUsersGroupByDiscordIdSumMonthPointsdOrderByMonthPoints();
+				if(generalLadderUsers.isEmpty()) return;
+				String general = generalLadderUsers
+						.stream()
+						.map(user -> "#" + user.getGeneralLadderPosition() + " " + guild.getMemberById(user.getDiscordId()).getUser().getAsMention() + " (" + user.getTotalPoints() + " points)")
+						.collect(Collectors.joining("\n"));
+				String month = monthLadderUsers
+						.stream()
+						.map(user -> "#" + user.getMonthLadderPosition() + " " + guild.getMemberById(user.getDiscordId()).getUser().getAsMention() + " (" + user.getMonthPoints() + " points)")
+						.collect(Collectors.joining("\n"));
+				String guilds = guildsMonthLadder(monthLadderUsers, guild);
 				List<Message> history = MessageHistory.getHistoryFromBeginning(channel).complete().getRetrievedHistory();
-				if(history.size() == 0) channel.sendMessageEmbeds(info.build()).queue();
-				else if(history.size() == 1) channel.editMessageEmbedsById(history.get(0).getIdLong(), info.build()).queue();
-				else {
-					channel.deleteMessages(history).queue();
-					channel.sendMessageEmbeds(info.build()).queue();
-				}
+				if(history.size() == 1) history.get(0).delete().queue();
+				else if(history.size() > 1) channel.deleteMessages(history).queue();
+				sendEmbeds(channel, general, month, guilds);
 			} catch (SQLException e) { e.printStackTrace(); }
 		});
+	}
+
+	private static String guildsMonthLadder(List<User> monthLadderUsers, Guild guild) {
+		Map<String, Float> unsorted = new HashMap<>();
+		for(User user : monthLadderUsers) {
+			Role guildRole = getGuildName(user, guild);
+			String guildName = guildRole == null ? "" : guildRole.getName();
+			if(unsorted.containsKey(guildName))
+				unsorted.replace(guildName, unsorted.get(guildName) + user.getMonthPoints());
+			else
+				unsorted.put(guildName, user.getMonthPoints());
+		}
+		Map<String, Float> sorted = unsorted.entrySet().stream()
+			    .sorted(Entry.comparingByValue())
+			    .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+		String res ="";
+		for(String g : sorted.keySet())
+			res = "#" + findPosition(g, sorted) + " " + g + " (" + sorted.get(g) + " points)\n" + res;
+		return res;
+	}
+	
+	private static Role getGuildName(User user, Guild guild) {
+		return guild
+				.getMemberById(user.getDiscordId())
+				.getRoles()
+				.stream()
+				.filter(role -> role.getPermissions().isEmpty())
+				.findFirst()
+				.orElse(null);
+	}
+
+	private static void sendEmbeds(TextChannel channel, String general, String month, String guilds) {
+		if(general.length() == 0 && month.length() == 0) return;
+		EmbedBuilder info = new EmbedBuilder();
+		general += "\n";
+		month += "\n";
+		String[] generalLines = general.split("\n");
+		String[] monthLines = month.split("\n");
+		int nbrFields = 0;
+		String generalStr = "", monthStr = "";
+		for(int i = 0; i < generalLines.length; i++) {
+			if((generalStr.length() + generalLines[i].length() + 1) > MessageEmbed.VALUE_MAX_LENGTH
+					|| (monthStr.length() + monthLines[i].length() + 1) > MessageEmbed.VALUE_MAX_LENGTH) {
+				info.addField(nbrFields == 0 ? "GENERAL :" : "", generalStr, true);
+				info.addField(nbrFields == 0 ? LocalDate.now().getMonth() + " :" : "", monthStr, true);
+				channel.sendMessageEmbeds(info.build()).queue();
+				info.clear();
+				generalStr = "";
+				monthStr = "";
+				nbrFields++;
+			} else {
+				generalStr = generalStr + generalLines[i] + "\n";
+				monthStr = monthStr + monthLines[i] + "\n";
+			}
+		}
+		if(generalStr.length() != 0 || monthStr.length() != 0) {
+			info.addField(nbrFields == 0 ? "GENERAL :" : "", generalStr, true);
+			info.addField(nbrFields == 0 ? LocalDate.now().getMonth() + " :" : "", monthStr, true);
+			channel.sendMessageEmbeds(info.build()).queue();
+		}
+		info.clear();
+		info.setTitle("Classement des guildes du mois :");
+		info.setDescription(guilds);
+		channel.sendMessageEmbeds(info.build());
 	}
 }

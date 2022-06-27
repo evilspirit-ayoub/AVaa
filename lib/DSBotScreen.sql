@@ -20,15 +20,16 @@ CREATE TABLE Screens (
 	pseudo		varchar(100),
 	isVictory	bool,
 	versus		varchar(4),
-	points		int(2),
+	points		float(10),
 	date 		date
 ) ENGINE = InnoDB;
 
 CREATE TABLE Ladders (
-	id			int(4)	PRIMARY KEY AUTO_INCREMENT,
-	pseudos		varchar(3000),
-	positions	varchar(600),
-	date 		varchar(13)
+	id				int(4)	PRIMARY KEY AUTO_INCREMENT,
+	pseudos			varchar(3000),
+	positions		varchar(1200),
+	points			varchar(2000),
+	date			varchar(13)
 ) ENGINE = InnoDB;
 	
 	

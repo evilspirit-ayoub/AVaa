@@ -9,14 +9,24 @@ import DSBot.database.model.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public class CommandStats implements CommandExecutor {
-
+	
+	private static Message message;
+	private static MessageChannel channel;
+	
 	@Override
-	public void run(MessageReceivedEvent event, Command command, Library library, String[] args) throws InterruptedException, ClassNotFoundException, IOException, SQLException {
-		Message message = event.getMessage();
-		message.getChannel().sendTyping().queue();
+	public void run(MessageReceivedEvent event, Command command, Library library, String[] args)
+			throws InterruptedException, ClassNotFoundException, IOException, SQLException {
+		message = event.getMessage();
+		channel = event.getChannel();
+		stats();
+	}
+
+	private void stats() throws SQLException {
+		channel.sendTyping().queue();
 		EmbedBuilder info = new EmbedBuilder();
 		List<Member> mentionnedMembers = message.getMentionedMembers();
 		Member memberToGetInfos = null;

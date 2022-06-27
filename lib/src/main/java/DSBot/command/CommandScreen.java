@@ -23,6 +23,7 @@ import org.opencv.imgproc.Imgproc;
 import DSBot.Library;
 import DSBot.database.model.Ladder;
 import DSBot.database.model.Screen;
+import DSBot.exception.DSBotException;
 import DSBot.utils.ocr.OCRUtils;
 import DSBot.utils.string.JaroWinklerStrategy;
 import DSBot.utils.string.SimilarityStrategy;
@@ -35,7 +36,6 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.MessageReference;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -44,90 +44,68 @@ import net.sourceforge.tess4j.TesseractException;
 
 public class CommandScreen implements CommandExecutor {
 	
-	private static final String SCALE_FILE = "bareme.txt";
-
+	public static final String SCALE_FILE = "bareme.txt";
+	private static Message message;
+	private static MessageChannel channel;
+	private static List<Attachment> attachments;
+	private static Library library;
+	private static String[] args;
+	
 	@Override
 	public void run(MessageReceivedEvent event, Command command, Library library, String[] args) throws Exception {
-		Message message = event.getMessage();
-		MessageChannel channel = message.getChannel();
-		channel.sendTyping().queue();
-		if(!isGoodChannel(channel)) {
-			message.replyEmbeds(new EmbedBuilder().setTitle("Mauvais channel.").build()).queue();
-			return;
-		}
-		if(args.length > 1 && args[1].equals("remove")) {
-			removeScreen(args, message);
-			return;
-		} else addScreen(library, args, message);
+		message = event.getMessage();
+		channel = message.getChannel();
+		attachments = message.getAttachments();
+		CommandScreen.library = library;
+		CommandScreen.args = args;
+		screen();
 	}
 
-	private static boolean isGoodChannel(MessageChannel channel) {
-		return channel.getName().contains("screen-defense");
+	private void screen() throws Exception {
+		if(!channel.getName().contains("screen-defense"))
+			throw new DSBotException(message, "Mauvais channel.");
+		if(args.length > 1 && args[1].equals("remove")) removeScreen();
+		else addScreen();
 	}
 	
-	private static void removeScreen(String[] args, Message message) throws Exception {
+	private static void removeScreen() throws Exception {
+		channel.sendTyping().queue();
+		message.addReaction("U+23F2").queue();
+		if(!authorizedToRemoveScreen()) {
+			message.removeReaction("U+23F2").queue();
+			throw new DSBotException(message, "Non autorise pour la plebe.");
+		}
 		EmbedBuilder info = new EmbedBuilder();
 		info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
-		message.addReaction("U+23F2").queue();
-		if(args.length < 3) info.setTitle("Invalid number of arguments.");
-		else if(authorizedToRemoveScreen(message.getMember())) {
-			Pattern pattern = Pattern.compile("^\\d+$");
-			Matcher matcher;
-			String find;
-			List<Message> history = message.getChannel().getHistory().retrievePast(100).complete();
-			List<String> removedMessages = new ArrayList<>();
-			List<String> notRemovedMessages = new ArrayList<>();
-			for(int i = 2; i < args.length; i++) {
-				matcher = pattern.matcher(args[i]);
-				if(matcher.find()) {
-					find = matcher.group();
-					for(Message msg : history)
-						if(msg.getId().equals(args[i])) {
-							MessageReference reference = msg.getMessageReference();
-							if(reference == null) {
-								notRemovedMessages.add(args[i]);
-								break;
-							}
-							Message context = reference.getMessage();
-							String authorName = context.getAuthor().getName();
-							File toDownload = new File(authorName);
-							context
-							.getAttachments()
-							.stream()
-							.filter(attachment -> attachment.isImage() && !toDownload.exists()).forEach(attachment -> {
-								File file = downloadAttachment(attachment, toDownload);
-								if(file == null) return;
-								try {
-									BufferedImage downloaded = ImageIO.read(toDownload);
-									List<String> ocr = filterOcrResult(OCRUtils.OCR(file, 0, 0, (downloaded.getWidth() / 3) - 1, downloaded.getHeight() - 1, Imgproc.THRESH_BINARY_INV));
-									capitalizePseudos(ocr);
-									toDownload.delete();
-									List<String> winners = getWinners(ocr);
-									List<String> loosers = getLoosers(ocr);
-									int indexOfFightContext = ocr.contains("PERCEPTEUR") ? ocr.indexOf("PERCEPTEUR") : ocr.indexOf("PRISME");
-									int indexOfLoosers = ocr.indexOf("PERDANTS");
-									boolean isVictory = indexOfFightContext < indexOfLoosers;
-									String versus = isVictory ? winners.size() + "vs" + loosers.size() : loosers.size() + "vs" + winners.size();
-									Ladder.update(context.getGuild(), isVictory ? winners : loosers, -1 * getPointsAccordingToScale(versus, isVictory));
-								} catch(Exception e) { e.printStackTrace(); } finally { file.delete(); }
-							});
-							Screen.delete(args[i]);
-							removedMessages.add(find);
-							break;
-						}
-				}
-			}
-			info.addField("Screen(s) enleve(s) :", removedMessages.stream().collect(Collectors.joining("\n")), false);
-			if(!notRemovedMessages.isEmpty()) info.addField("Screen(s) non enleve(s) :", notRemovedMessages.stream().collect(Collectors.joining("\n")), false);
-		} else info.setTitle("Non autorise.");
-		message.replyEmbeds(info.build()).queue();
-		message.removeReaction("U+23F2").queue();
+		if(args.length < 3) {
+			message.removeReaction("U+23F2").queue();
+			throw new DSBotException(message, "La commande doit contenir deux arguments.");
+		}
+		Pattern pattern = Pattern.compile("^\\d+$");
+		Matcher matcher;
+		String find;
+		matcher = pattern.matcher(args[2]);
+		if(matcher.find()) {
+			find = matcher.group();
+			Screen screen = Screen.getScreen(find);
+			if(screen == null)
+				throw new DSBotException(message, "Le screen ayant l id " + find + " n existe pas.");
+			Screen.delete(find);
+			Ladder.updatePoints(message.getGuild(), screen.getPseudos(), (-1) * screen.getPoints());
+			Ladder.updatePoisitonsForLinkedUsers();
+			Ladder.updateThisMonthLadder();
+			Ladder.refreshDiscordChannelLadder(message.getGuild());
+			info.setTitle("Screen enleve.");
+			message.replyEmbeds(info.build()).queue();
+			message.removeReaction("U+23F2").queue();
+		} else throw new DSBotException(message, "Le screen ayant l id " + args[2] + " n existe pas.");
 	}
 	
-	private static boolean authorizedToRemoveScreen(Member messageSenderMember) {
-		if(messageSenderMember.hasPermission(Permission.VIEW_AUDIT_LOGS)) return true;
-		if(messageSenderMember.hasPermission(Permission.KICK_MEMBERS)) return true;
-		if(messageSenderMember.hasPermission(Permission.BAN_MEMBERS)) return true;
+	private static boolean authorizedToRemoveScreen() {
+		Member messageSender = message.getMember();
+		if(messageSender.hasPermission(Permission.VIEW_AUDIT_LOGS)) return true;
+		if(messageSender.hasPermission(Permission.KICK_MEMBERS)) return true;
+		if(messageSender.hasPermission(Permission.BAN_MEMBERS)) return true;
 		return false;
 	}
 	
@@ -179,7 +157,7 @@ public class CommandScreen implements CommandExecutor {
 			if(filtered.get(i).equals("GAGNANTS") || filtered.get(i).equals("PERDANTS") || filtered.get(i).equals("PERCEPTEUR") || filtered.get(i).equals("PRISME")) continue;
 			for(int j = i + 1; j < filtered.size(); j++) {
 				if(filtered.get(j).equals("GAGNANTS") || filtered.get(j).equals("PERDANTS") || filtered.get(j).equals("PERCEPTEUR") || filtered.get(j).equals("PRISME")) continue;
-				if(service.score(filtered.get(i), filtered.get(j)) >= 0.8)
+				if(service.score(filtered.get(i), filtered.get(j)) >= 0.91)
 					repeated.add(filtered.get(i).length() < filtered.get(j).length() ? filtered.get(i) : filtered.get(j));
 			}
 		}
@@ -216,7 +194,8 @@ public class CommandScreen implements CommandExecutor {
 	}
 	
 	private static List<String> capitalizePseudos(List<String> ocr) {
-		for(int i = 0; i < ocr.size(); i++) ocr.set(i, ocr.get(i).substring(0, 1).toUpperCase() + ocr.get(i).substring(1));
+		for(int i = 0; i < ocr.size(); i++)
+			ocr.set(i, ocr.get(i).substring(0, 1).toUpperCase() + ocr.get(i).substring(1));
 		return ocr;
 	}
 	
@@ -239,76 +218,86 @@ public class CommandScreen implements CommandExecutor {
     				else res.add(ocr.get(j));
     	return res;
     }
-    
-    private static void addScreen(Library library, String[] args, Message message) throws Exception {
-    	List<Attachment> attachments = message.getAttachments();
-    	EmbedBuilder info = new EmbedBuilder();
-    	if(attachments.isEmpty()) {
-    		message.replyEmbeds(info.setTitle("No attachments.").build()).queue();
-    		return;
-    	}
+
+    private static void addScreen() throws Exception {
+    	channel.sendTyping().queue();
     	message.addReaction("U+23F2").queue();
-    	String authorName = message.getAuthor().getName();
+    	if(attachments.isEmpty()) {
+    		message.removeReaction("U+23F2").queue();
+    		throw new DSBotException(message, "Aucune image detecte.");
+    	}
+    	Attachment attachment = attachments.get(0);
+		if(!attachment.isImage()) {
+			message.removeReaction("U+23F2").queue();
+			throw new DSBotException(message, "L attachment n est pas une image.");
+		}
+		String authorName = message.getAuthor().getName();
 		File toDownload = new File(authorName);
-    	attachments.stream().filter(attachment -> attachment.isImage() && !toDownload.exists()).forEach(attachment -> {
-			File file = downloadAttachment(attachment, toDownload);
-			if(file == null) return;
-			try {
-				BufferedImage downloaded = ImageIO.read(toDownload);
-				List<String> ocr = filterOcrResult(OCRUtils.OCR(file, 0, 0, (downloaded.getWidth() / 3) - 1, downloaded.getHeight() - 1, Imgproc.THRESH_BINARY_INV));
-				if(!checkOcrResult(ocr)) {
-					message.replyEmbeds(info.setTitle("Reessayez avec un autre screen mieux cradre et/ou avec un autre theme.").build()).queue();
-					return;
-				}
-				capitalizePseudos(ocr);
-				toDownload.delete();
-				List<String> winners = getWinners(ocr);
-				List<String> loosers = getLoosers(ocr);
-				int indexOfFightContext = ocr.contains("PERCEPTEUR") ? ocr.indexOf("PERCEPTEUR") : ocr.indexOf("PRISME");
-				int indexOfLoosers = ocr.indexOf("PERDANTS");
-				boolean isVictory = indexOfFightContext < indexOfLoosers;
-				String versus = isVictory ? winners.size() + "vs" + loosers.size() : loosers.size() + "vs" + winners.size();
-				info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl())
-				.setTitle("Defense " + (ocr.contains("PERCEPTEUR") ? "percepteur" : "prisme"))
+		if(toDownload.exists()) toDownload.delete();
+		toDownload = downloadAttachment(attachment, toDownload);
+		if(toDownload == null) {
+			message.removeReaction("U+23F2").queue();
+			throw new DSBotException(message, "Erreur pendant le telechargement.");
+		}
+		BufferedImage attachmentBuffer = ImageIO.read(toDownload);
+		List<String> ocr = filterOcrResult(OCRUtils.OCR(toDownload, 0, 0, (attachmentBuffer.getWidth() / 3) - 1, attachmentBuffer.getHeight() - 1, Imgproc.THRESH_BINARY_INV));
+		if(!checkOcrResult(ocr)) {
+			message.removeReaction("U+23F2").queue();
+			toDownload.delete();
+			throw new DSBotException(message, "Reessayez avec un autre screen mieux cradre et/ou avec un autre theme et/ou plus grand.");
+		}
+		capitalizePseudos(ocr);
+		toDownload.delete();
+		List<String> winners = getWinners(ocr);
+		List<String> loosers = getLoosers(ocr);
+		int indexOfFightContext = ocr.contains("PERCEPTEUR") ? ocr.indexOf("PERCEPTEUR") : ocr.indexOf("PRISME");
+		int indexOfLoosers = ocr.indexOf("PERDANTS");
+		boolean isVictory = indexOfFightContext < indexOfLoosers;
+		String versus = isVictory ? winners.size() + "vs" + loosers.size() : loosers.size() + "vs" + winners.size();
+		EmbedBuilder info = new EmbedBuilder()
+				.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl())
+				.setTitle(Emoji.fromUnicode("\u2694").getAsMention() + " Defense " + (ocr.contains("PERCEPTEUR") ? "percepteur" : "prisme"))
 				.setDescription((isVictory ? "Victoire " : "Defaite ") + versus)
-				.addField("Gagnants :", winners.stream().collect(Collectors.joining("\n")), false)
-				.addField("Perdants :", loosers.stream().collect(Collectors.joining("\n")), false);
-				message.replyEmbeds(info.build()).setActionRow(
-		                Button.of(ButtonStyle.PRIMARY, "example-bot:button:symbols:white_check_mark", "VALIDATE", Emoji.fromUnicode("\u2705")),
-		                Button.of(ButtonStyle.PRIMARY, "example-bot:button:symbols:x", "CANCEL", Emoji.fromUnicode("\u274c")))
-				.queue(replyMessage -> {
-					library
-					.getEventWaiter()
-					.waitForEvent(ButtonInteractionEvent.class, 
-			                event -> { return checkInteraction(event, replyMessage, message); },
-			                event -> {
-			                	replyMessage.editMessageComponents().setActionRows().queue();
-			                	String selection = event.getComponentId().split(":")[3];
-			                	if(selection.equals("white_check_mark")) {
-			                		info.setColor(0x00FF00);
-			                		try {
-			                			float points = getPointsAccordingToScale(versus, isVictory);
-			                			info.addField("Points : ", String.valueOf(points), false);
-			                			Screen screen = new Screen(replyMessage.getId(), isVictory ? winners : loosers, isVictory, versus, points, LocalDate.now());
-			                			screen.insert();
-			                			Ladder.update(message.getGuild(), isVictory ? winners : loosers, points);
-			                		}catch (SQLException | IOException e) { e.printStackTrace(); }
-				                	info.setFooter(replyMessage.getId());
-			                	} else info.setColor(0xFF0000);
-			                	replyMessage.editMessageEmbeds(info.build()).queue();
-			                },
-			                30,
-			                TimeUnit.SECONDS,
-			                () -> {
-			                	replyMessage.editMessageEmbeds(info.clear().setTitle("Expiration.").setColor(0xFF0000).build()).setActionRows().queue();
-			                });
-				});
-				message.removeReaction("U+23F2").queue();
-			} catch (Exception e1) { e1.printStackTrace(); } finally { message.removeReaction("U+23F2").queue(); file.delete(); }
+				.addField("Gagnants :", winners.stream().map(pseudo -> pseudo = "- " + pseudo).collect(Collectors.joining("\n")), true)
+				.addField("Perdants :", loosers.stream().map(pseudo -> pseudo = "- " + pseudo).collect(Collectors.joining("\n")), true);
+		message.replyEmbeds(info.build()).setActionRow(
+                Button.of(ButtonStyle.PRIMARY, "example-bot:button:symbols:white_check_mark", "VALIDATE", Emoji.fromUnicode("\u2705")),
+                Button.of(ButtonStyle.PRIMARY, "example-bot:button:symbols:x", "CANCEL", Emoji.fromUnicode("\u274c")))
+		.queue(replyMessage -> {
+			library
+			.getEventWaiter()
+			.waitForEvent(
+					ButtonInteractionEvent.class, 
+	                event -> { return checkInteraction(event, replyMessage); },
+	                event -> {
+	                	replyMessage.editMessageComponents().setActionRows().queue();
+	                	String selection = event.getComponentId().split(":")[3];
+	                	if(selection.equals("white_check_mark")) {
+	                		try {
+	                			info.setColor(0x00FF00);
+	                			float points = getPointsAccordingToScale(versus, isVictory);
+	                			info.addField("Points", String.valueOf(points), false);
+	                			Screen screen = new Screen(replyMessage.getId(), isVictory ? winners : loosers, isVictory, versus, points, LocalDate.now());
+	                			screen.insert();
+	                			Ladder.updatePoints(message.getGuild(), isVictory ? winners : loosers, points);
+	                			Ladder.updatePoisitonsForLinkedUsers();
+	                			Ladder.updateThisMonthLadder();
+	                			Ladder.refreshDiscordChannelLadder(message.getGuild());
+	                			info.setFooter(replyMessage.getId());
+	                		}catch (SQLException | IOException e) { e.printStackTrace(); }
+	                	} else info.setColor(0xFF0000);
+	                	replyMessage.editMessageEmbeds(info.build()).queue();
+	                },
+	                45,
+	                TimeUnit.SECONDS,
+	                () -> {
+	                	replyMessage.editMessageEmbeds(info.clear().setTitle("Expiration.").setColor(0xFF0000).build()).setActionRows().queue();
+	                });
 		});
+		message.removeReaction("U+23F2").queue();
     }
     
-    private static boolean checkInteraction(ButtonInteractionEvent event, Message replyMessage, Message message) {
+    private static boolean checkInteraction(ButtonInteractionEvent event, Message replyMessage) {
 		if (event.getUser().getIdLong() != message.getAuthor().getIdLong()) return false;
         if (event.getMessageIdLong() != replyMessage.getIdLong()) return false;
         if (!equalsAny(event.getComponentId())) return false;

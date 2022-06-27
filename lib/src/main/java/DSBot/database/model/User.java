@@ -71,6 +71,8 @@ public class User {
 	public static List<User> getAllUsersGroupByDiscordIdOrderBy(String columnName) throws SQLException { return usersDAO.selectUsersGroupByDiscordIdOrderBy(columnName); }
 	public static List<User> getAllLinkedUsersGroupByDiscordId() throws SQLException { return usersDAO.selectAllLinkedUsersGroupByDiscordId(); }
 	public static List<User> getAllLinkedUsersGroupByDiscordIdOrderBy(String columnName) throws SQLException { return usersDAO.selectLinkedUsersGroupByDiscordIdOrderBy(columnName); }
+	public static List<User> getAllLinkedUsersGroupByDiscordIdSumTotalPointsdOrderByTotalPoints() throws SQLException { return usersDAO.selectLinkedUsersGroupByDiscordIdSumTotlaPointsdOrderByTotalPoints(); }
+	public static List<User> getAllLinkedUsersGroupByDiscordIdSumMonthPointsdOrderByMonthPoints() throws SQLException { return usersDAO.selectLinkedUsersGroupByDiscordIdSumMonthPointsdOrderByMonthPoints(); }
 	public static List<User> getAllLinkedUsers() throws SQLException { return usersDAO.selectAllLinkedUsers(); }
 	public static List<User> getAllUnlinkedUsers() throws SQLException { return usersDAO.selectAllUnlinkedUsers(); }
 	public static User getUserByPseudo(String pseudo) throws SQLException { return usersDAO.selectUserByPseudo(pseudo); }

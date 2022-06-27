@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="BotDS.LibraryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-06-24T00:20:28" hostname="DESKTOP-O44KM7S" time="0.038">
+<testsuite name="BotDS.LibraryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-06-26T18:40:06" hostname="DESKTOP-O44KM7S" time="0.011">
   <properties/>
-  <testcase name="someLibraryMethodReturnsTrue()" classname="BotDS.LibraryTest" time="0.038"/>
+  <testcase name="someLibraryMethodReturnsTrue()" classname="BotDS.LibraryTest" time="0.011"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

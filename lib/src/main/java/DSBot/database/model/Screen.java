@@ -23,10 +23,10 @@ public class Screen {
 	private String messageId, versus;
 	private List<String> pseudos;
 	private boolean isVictory;
-	double points;
+	private float points;
 	private LocalDate date;
 	
-	public Screen(String messageId, List<String> pseudos, boolean isVictory, String versus, double points, LocalDate date) {
+	public Screen(String messageId, List<String> pseudos, boolean isVictory, String versus, float points, LocalDate date) {
 		this.messageId = messageId;
 		this.pseudos = pseudos;
 		this.isVictory = isVictory;
@@ -43,8 +43,8 @@ public class Screen {
 	public void setVictory(boolean isVictory) { this.isVictory = isVictory; }
 	public String getVersus() { return versus; }
 	public void setVersus(String versus) { this.versus = versus; }
-	public double getPoints() { return points; }
-	public void setPoints(double points) { this.points = points; }
+	public float getPoints() { return points; }
+	public void setPoints(float points) { this.points = points; }
 	public LocalDate getDate() { return date; }
 	public void setDate(LocalDate date) { this.date = date; }
 	public void insert() throws SQLException { screenDAO.insertScreen(this); }

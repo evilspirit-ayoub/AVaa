@@ -31,7 +31,7 @@ public class ScreenDAO extends DAO {
 			preparedStatement.setString(2, screen.getPseudos().stream().collect(Collectors.joining(",")));
 			preparedStatement.setBoolean(3, screen.isVictory());
 			preparedStatement.setString(4, screen.getVersus());
-			preparedStatement.setDouble(5, screen.getPoints());
+			preparedStatement.setFloat(5, screen.getPoints());
 			preparedStatement.setDate(6, Date.valueOf(screen.getDate()));
 			preparedStatement.executeUpdate();
 		} catch (SQLException e) { printSQLException(e); }
@@ -46,7 +46,7 @@ public class ScreenDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				boolean isVictory = rs.getBoolean("isVictory");
 				String versus = rs.getString("versus");
-				int points = rs.getInt("points");
+				float points = rs.getFloat("points");
 				Date date = rs.getDate("date");
 				screen = new Screen(id, Arrays.asList(pseudo.split(",")), isVictory, versus, points, date.toLocalDate());
 			}
@@ -63,7 +63,7 @@ public class ScreenDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				boolean isVictory = rs.getBoolean("isVictory");
 				String versus = rs.getString("versus");
-				int points = rs.getInt("points");
+				float points = rs.getFloat("points");
 				Date date = rs.getDate("date");
 				screens.add(new Screen(messageId, Arrays.asList(pseudo.split(",")), isVictory, versus, points, date.toLocalDate()));
 			}
@@ -87,7 +87,7 @@ public class ScreenDAO extends DAO {
 			statement.setString(2, screen.getPseudos().stream().collect(Collectors.joining(",")));
 			statement.setBoolean(3, screen.isVictory());
 			statement.setString(4, screen.getVersus());
-			statement.setDouble(5, screen.getPoints());
+			statement.setFloat(5, screen.getPoints());
 			statement.setDate(6, Date.valueOf(screen.getDate()));
 			statement.setString(7, screen.getmessageId());
 			rowUpdated = statement.executeUpdate() > 0;
@@ -104,7 +104,7 @@ public class ScreenDAO extends DAO {
 				String pseudo = rs.getString("pseudo");
 				boolean isVictory = rs.getBoolean("isVictory");
 				String versus = rs.getString("versus");
-				int points = rs.getInt("points");
+				float points = rs.getFloat("points");
 				Date date = rs.getDate("date");
 				screen = new Screen(messageId, Arrays.asList(pseudo.split(",")), isVictory, versus, points, date.toLocalDate());
 			}

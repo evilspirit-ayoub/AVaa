@@ -1,36 +1,50 @@
 package DSBot.command;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import DSBot.Library;
 import DSBot.database.model.Ladder;
 import DSBot.database.model.User;
+import DSBot.exception.DSBotException;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public class CommandPoints implements CommandExecutor {
-
+	
+	private static Message message;
+	private static MessageChannel channel;
+	private static String[] args;
+	
 	@Override
-	public void run(MessageReceivedEvent event, Command command, Library library, String[] args) throws InterruptedException, ClassNotFoundException, IOException, Exception {
-		Message message = event.getMessage();
-		message.getChannel().sendTyping().queue();
+	public void run(MessageReceivedEvent event, Command command, Library library, String[] args)
+			throws InterruptedException, ClassNotFoundException, IOException, Exception {
+		message = event.getMessage();
+		channel = event.getChannel();
+		CommandPoints.args = args;
+		points();
+	}
+
+	private void points() throws DSBotException, SQLException {
+		channel.sendTyping().queue();
 		EmbedBuilder info = new EmbedBuilder();
-		if(!authorizedToLink(message.getMember())) {
-			info.setTitle("Non autorise pour la plebe.");
-			message.replyEmbeds(info.build()).queue();
-		}
+		if(!authorizedToLink(message.getMember()))
+			throw new DSBotException(message, "Non autorise pour la plebe.");
 		info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
-		if(args.length != 4) info.setTitle("Pour pouvoir ajouter/enlever des points : !points add/remove pseudo points");
+		if(args.length != 4)
+			throw new DSBotException(message, "Pour pouvoir ajouter/enlever des points : !points add/remove pseudo points");
 		else if((!args[1].equals("add") && !args[1].equals("remove")) || !isPseudo(args[2]) || !isDouble(args[3]))
-				info.setTitle("Pour pouvoir ajouter/enlever des points : !points add/remove pseudo points");
+			throw new DSBotException(message, "Pour pouvoir ajouter/enlever des points : !points add/remove pseudo points");
 		else if(!args[1].equals("add")) {
 			User user = User.getUserByPseudo(args[2]);
-			if(user == null) info.setTitle("Le pseudo " + args[2] + " n'est pas present dans la base de donnees.");
+			if(user == null)
+				throw new DSBotException(message, "Le pseudo " + args[2] + " n'est pas present dans la base de donnees.");
 			else {
 				user.setTotalPoints(user.getTotalPoints() - Float.parseFloat(args[3]));
 				user.setMonthPoints(user.getMonthPoints() - Float.parseFloat(args[3]));
@@ -38,10 +52,12 @@ public class CommandPoints implements CommandExecutor {
 				Ladder.updatePoisitonsForLinkedUsers();
 				Ladder.updateThisMonthLadder();
 				Ladder.refreshDiscordChannelLadder(message.getGuild());
+				info.setTitle("Les points ont ete retire.");
 			}
 		} else {
 			User user = User.getUserByPseudo(args[2]);
-			if(user == null) info.setTitle("Le pseudo " + args[2] + " n'est pas present dans la base de donnees.");
+			if(user == null)
+				throw new DSBotException(message, "Le pseudo " + args[2] + " n'est pas present dans la base de donnees.");
 			else {
 				user.setTotalPoints(user.getTotalPoints() + Float.parseFloat(args[3]));
 				user.setMonthPoints(user.getMonthPoints() + Float.parseFloat(args[3]));
@@ -49,9 +65,10 @@ public class CommandPoints implements CommandExecutor {
 				Ladder.updatePoisitonsForLinkedUsers();
 				Ladder.updateThisMonthLadder();
 				Ladder.refreshDiscordChannelLadder(message.getGuild());
+				info.setTitle("Les points ont ete ajoute.");
 			}
 		}
-		message.replyEmbeds(info.setTitle("Les points ont ete ajoute.").build()).queue();
+		message.replyEmbeds(info.build()).queue();
 	}
 
 	private static boolean authorizedToLink(Member messageSenderMember) {

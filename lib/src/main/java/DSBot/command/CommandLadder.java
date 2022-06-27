@@ -1,57 +1,56 @@
 package DSBot.command;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.Month;
 import java.time.Year;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import DSBot.Library;
 import DSBot.database.model.Ladder;
+import DSBot.exception.DSBotException;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public class CommandLadder implements CommandExecutor {
 
+	private static Message message;
+	private static MessageChannel channel;
+	private static String[] args;
+	
 	@Override
 	public void run(MessageReceivedEvent event, Command command, Library library, String[] args) throws InterruptedException, ClassNotFoundException, IOException, Exception {
-		Message message = event.getMessage();
-		message.getChannel().sendTyping().queue();
-		EmbedBuilder info = new EmbedBuilder();
-		info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
-		if(args.length < 2) info.setTitle("Doit etre de la forme : !ladder numeroDuMois/annee");
-		else if(!isGoodDate(args[1])) info.setTitle("Mauvaise date. Doit etre de la forme : !ladder numeroDuMois/annee");
+		message = event.getMessage();
+		channel = message.getChannel();
+		CommandLadder.args = args;
+		ladder();
+	}
+
+	private void ladder() throws DSBotException, SQLException {
+		channel.sendTyping().queue();
+		if(args.length < 2) throw new DSBotException(message, "La commande doit contenir la date du ladder desire comme argument.");
+		else if(!isGoodDate(args[1])) throw new DSBotException(message, "Mauvaise date, l'argument doi etre de la forme : numeroDuMois/annee");
 		else {
+			EmbedBuilder info = new EmbedBuilder();
+			info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
 			String month = Month.of(Integer.valueOf(args[1].split("/")[0])).toString();
 			String year = Year.of(Integer.valueOf(args[1].split("/")[1])).toString();
 			Ladder ladder = Ladder.getLadderBydDate(month + "/" + year);
-			if(ladder == null) info.setTitle("Le ladder du " + month + "/" + year + " n'existe pas.");
+			if(ladder == null) throw new DSBotException(message, "Le ladder du " + month + "/" + year + " n'existe pas.");
 			else {
-				Map<String, Integer> unsortedLadder = new HashMap<>();
-				ladder.getDiscordIds().stream()
-				.forEach(pseudo -> {
-					int position = ladder.getDiscordIds().indexOf(pseudo);
-					if(!unsortedLadder.containsKey(pseudo)) {
-						unsortedLadder.put(pseudo, ladder.getPositions().get(position));
-					}
-				});
-				Map<String, Integer> sortedLadder = sortMap(unsortedLadder);
-				String display = "";
-				for(String id : sortedLadder.keySet()) {
-					User user = message.getGuild().getMemberById(id).getUser();
-					display = "\n#" + sortedLadder.get(id) + " " + (user == null ? id : user.getName()) + display;
+				String ladderStr = "";
+				for(int i = 0; i < ladder.getDiscordIds().size(); i++) {
+					User user = message.getGuild().getMemberById(ladder.getDiscordIds().get(i)).getUser();
+					ladderStr = ladderStr + "#" + ladder.getPositions().get(i) + " " + (user == null ? ladder.getDiscordIds().get(i) : user.getName()) + " (" + ladder.getPoints().get(i) + " points)\n";
 				}
-				info.setTitle(display);
+				sendEmbeds(ladderStr);
 			}
 		}
-		message.replyEmbeds(info.build()).queue();
 	}
 
 	private boolean isGoodDate(String date) {
@@ -66,9 +65,22 @@ public class CommandLadder implements CommandExecutor {
 		return true;
 	}
 	
-	private static Map<String, Integer> sortMap(Map<String, Integer> map) {
-		return map.entrySet().stream()
-			    .sorted(Entry.comparingByValue())
-			    .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+	public static void sendEmbeds(String ladder) {
+		if(ladder.length() == 0) return;
+		EmbedBuilder info = new EmbedBuilder();
+		String[] ladderLines = ladder.split("\n");
+		String ladderStr = "";
+		for(int i = 0; i < ladderLines.length; i++) {
+			if((ladderStr.length() + ladderLines[i].length() + 1) > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
+				info.setDescription(ladderStr);
+				channel.sendMessageEmbeds(info.build()).queue();
+				info.clear();
+				ladderStr = "";
+			} else ladderStr = ladderStr + ladderLines[i] + "\n";
+		}
+		if(ladderStr.length() != 0) {
+			info.setDescription(ladderStr);
+			channel.sendMessageEmbeds(info.build()).queue();
+		}
 	}
 }

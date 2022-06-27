@@ -7,11 +7,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import DSBot.Library;
+import DSBot.exception.DSBotException;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -22,27 +24,43 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 
 public class CommandMpAll implements CommandExecutor {
-
+	
+	private static Message message;
+	private static MessageChannel channel;
+	private static Library library;
+	private static String[] args;
+	
 	@Override
-	public void run(MessageReceivedEvent event, Command command, Library library, String[] args) throws InterruptedException, ClassNotFoundException, IOException, Exception {
-		Message message = event.getMessage();
+	public void run(MessageReceivedEvent event, Command command, Library library, String[] args)
+			throws InterruptedException, ClassNotFoundException, IOException, Exception {
+		message = event.getMessage();
+		channel = event.getChannel();
+		CommandMpAll.library = library;
+		CommandMpAll.args = args;
+		mpall();
+	}
+
+	private void mpall() throws DSBotException {
+		channel.sendTyping().queue();
 		EmbedBuilder info = new EmbedBuilder();
 		info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
-		if(!authorizedToLink(message.getMember())) {
-			message.replyEmbeds(info.setTitle("Non autorise pour la plebe.").build()).queue();
-			return;
-		}
+		if(!authorizedToLink(message.getMember()))
+			throw new DSBotException(message, "Non autorise pour la plebe.");
 		String line = "";
 		for(int i = 0 ; i < args.length; i++) line += args[i] + " ";
 		int indexBeginGuilds = line.indexOf("[");
 		int indexEndGuilds = line.indexOf("]");
 		int indexOfBeginMessage = line.indexOf("|");
-		if(indexBeginGuilds == -1) info.setTitle("Caractere suivant manquant : [");
-		else if(indexEndGuilds == -1) info.setTitle("Caractere suivant manquant : ]");
-		else if(indexOfBeginMessage == -1 ) info.setTitle("Caractere suivant manquant : |");
+		if(indexBeginGuilds == -1)
+			throw new DSBotException(message, "Caractere suivant manquant : [");
+		else if(indexEndGuilds == -1)
+			throw new DSBotException(message, "Caractere suivant manquant : ]");
+		else if(indexOfBeginMessage == -1 )
+			throw new DSBotException(message, "Caractere suivant manquant : |");
 		else {
 			String[] guilds = line.substring(indexBeginGuilds + 1, indexEndGuilds).split(",");
-			if(guilds.length == 0) info.setTitle("Aucune guilde mentionnee.");
+			if(guilds.length == 0)
+				throw new DSBotException(message, "Aucune guilde mentionnee");
 			else {
 				List<Role> roles = message.getGuild().getRoles();
 				List<Role> rolesToMentionne = new ArrayList<>();
@@ -55,10 +73,8 @@ public class CommandMpAll implements CommandExecutor {
 							break;
 						}
 					}
-					if(r == null) {
-						info.setTitle("La guilde " + guild + " n'est pas reconnu.");
-						message.replyEmbeds(info.build()).queue();
-					}
+					if(r == null)
+						throw new DSBotException(message, "La guilde " + guild + " n'est pas reconnu.");
 				}
 				List<User> members = message.getGuild()
 						.getMembers()
