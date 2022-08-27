@@ -17,14 +17,17 @@ public class Library {
 	private final EventWaiter eventWaiter = new EventWaiter();
 	
     public static void main(String ... args) throws Exception {
-    	new Library().start("TOKEN");
+    	// esclave 1
+    	//new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GFmTns.0_mRntFlUuGNuxh8_seAgTwrqgstLC-S0tQM3g");
+    	// esclave 2
+    	new Library().start("OTkwMDEzMzQxNzcyNjk3NjEx.GZvfPW.GlgHzGCNwMY3Vl5s5Ju9xoUCbW1bXF8mRkoNs4");
     }
     
     public void start(String token) throws LoginException, InterruptedException, IOException, ClassNotFoundException {
     	JDABuilder
 		.createDefault(token)
 		.setChunkingFilter(ChunkingFilter.ALL) // enable member chunking for all guilds
-		.setMemberCachePolicy(MemberCachePolicy.ALL)
+		//.setMemberCachePolicy(MemberCachePolicy.ALL)
 		.enableIntents(GatewayIntent.GUILD_MEMBERS)
         .addEventListeners(new CommandManager(this), eventWaiter)
         .build()

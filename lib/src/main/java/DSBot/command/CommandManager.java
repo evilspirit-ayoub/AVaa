@@ -31,6 +31,7 @@ public class CommandManager extends ListenerAdapter {
 		commandRegistry.addCommand(new Command("pet", "Pet the frizouzou", new CommandPet(),"pet"));
 		commandRegistry.addCommand(new Command("resetMonthPoints", "Reinisialise les points et defence du mois en cours.", new CommandResetMonthPoints(),"rmp", "resetMonthPoints"));
 		commandRegistry.addCommand(new Command("ratio", "Ratio le dernier message du membre cible.", new CommandRatio(),"ratio"));
+		commandRegistry.addCommand(new Command("refreshClassment", "Met a jour le classement.", new CommandRefreshClassment(),"rc", "refreshClassment"));
 	}
 	
 	public void onMessageReceived(MessageReceivedEvent event) {

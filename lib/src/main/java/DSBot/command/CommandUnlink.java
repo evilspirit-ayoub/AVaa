@@ -51,6 +51,7 @@ public class CommandUnlink implements CommandExecutor {
 				throw new DSBotException(message, "Non autorise pour la plebe.");
 			List<String> toUnlink = new ArrayList<>();
 			for(int i = 2; i < args.length; i++) {
+				if(args[i].isEmpty()) continue;
 				User user = User.getUserByPseudo(args[i]);
 				if(user != null && user.getDiscordId() != null && user.getDiscordId().equals(mentionnedMembers.get(0).getId())) {
 					user.setDiscordId(null);

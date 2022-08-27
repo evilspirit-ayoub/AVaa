@@ -60,6 +60,7 @@ public class CommandLink implements CommandExecutor {
 				List<String> newLinked = new ArrayList<>();
 				List<String> alreadyLinked = new ArrayList<>();
 				for(int i = 2; i < args.length; i++) {
+					if(args[i].isEmpty()) continue;
 					if(!User.isLinked(args[i])) {
 						if(User.isUserExist(args[i])) {
 							User user = User.getUserByPseudo(args[i]);

@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -121,26 +122,37 @@ public class CommandScreen implements CommandExecutor {
 	}
 	
 	private static List<String> filterOcrResult(List<String> ocr) {
-		Pattern pattern = Pattern.compile("^[a-zA-ZâêèéîçôoûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôoûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]+([-][a-zA-ZâêèéîçôoûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôoûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]*)*$|[A-Za-zâêèéîçôoûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôoûïÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]+([-][a-zA-ZâêèéîçôoûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôoûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]*)*");
-		//Pattern pattern = Pattern.compile("^[a-zA-Z][a-z]+([-][a-zA-Z][a-z]*)*$|[A-Za-z][a-z]+([-][a-zA-Z][a-z]*)*");
+		Pattern pattern = Pattern.compile("[A-ZâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]*(-[a-zA-ZâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]*)*");
 		Matcher matcher;
+		Pattern patternPerco = Pattern.compile("Do'|do'| Do | do |Do[A-Z]|Do‘|do‘");
 		String str, keep, find;
 		List<String> filtered = new ArrayList<>();
 		for(int i = 0; i < ocr.size(); i++) {
 			str = ocr.get(i);
-			if(str.contains("Prism") || str.contains("prism") || str.contains("alliance")) filtered.add("PRISME");
-			else if(str.contains("Do") || str.contains("do'")) filtered.add("PERCEPTEUR");
-			else if(str.contains("Gagnants") || str.contains("agnants") || str.contains("agnant")) filtered.add("GAGNANTS");
-			else if(str.contains("Perdants") || str.contains("erdants") || str.contains("erdant")) filtered.add("PERDANTS");
-			else {
-				matcher = pattern.matcher(str);
-				keep = "";
-				while(matcher.find()) {
-					find = matcher.group();
-					if(find.length() > 2 && find.length() > keep.length()) keep = find;
-				}
-				if(!keep.isEmpty()) filtered.add(keep);
+			if(str.contains("Prisme") || str.contains("prisme") || str.contains("Prism") || str.contains("prism") || str.contains("alliance")) {
+				filtered.add("PRISME");
+				continue;
 			}
+			matcher = patternPerco.matcher(str);
+			if(matcher.find()) {
+				filtered.add("PERCEPTEUR");
+				continue;
+			}
+			if(str.contains("Gagnants") || str.contains("agnants") || str.contains("agnant")) {
+				filtered.add("GAGNANTS");
+				continue;
+			}
+			if(str.contains("Perdants") || str.contains("erdants") || str.contains("erdant")) {
+				filtered.add("PERDANTS");
+				continue;
+			}
+			matcher = pattern.matcher(str);
+			keep = "";
+			while(matcher.find()) {
+				find = matcher.group();
+				if(find.length() > 3 && find.length() > keep.length()) keep = find;
+			}
+			if(!keep.isEmpty()) filtered.add(keep);
 		}
 		while(filtered.size() != 0) {
     		if(filtered.get(0).equals("GAGNANTS")) break;
@@ -240,11 +252,13 @@ public class CommandScreen implements CommandExecutor {
 			throw new DSBotException(message, "Erreur pendant le telechargement.");
 		}
 		BufferedImage attachmentBuffer = ImageIO.read(toDownload);
-		List<String> ocr = filterOcrResult(OCRUtils.OCR(toDownload, 0, 0, (attachmentBuffer.getWidth() / 3) - 1, attachmentBuffer.getHeight() - 1, Imgproc.THRESH_BINARY_INV));
+		List<String> ocr = filterOcrResult(OCRUtils.OCR(toDownload, 0, 0, (attachmentBuffer.getWidth() / 4) - 1, attachmentBuffer.getHeight() - 1, Imgproc.THRESH_BINARY_INV));
+		for(String s : ocr) System.out.println(s);
+		System.out.println("/////////////");
 		if(!checkOcrResult(ocr)) {
 			message.removeReaction("U+23F2").queue();
 			toDownload.delete();
-			throw new DSBotException(message, "Reessayez avec un autre screen mieux cradre et/ou avec un autre theme et/ou plus grand.");
+			throw new DSBotException(message, "Reessayez avec un autre screen mieux cadre et/ou avec un autre theme et/ou plus grand.");
 		}
 		capitalizePseudos(ocr);
 		toDownload.delete();
@@ -276,7 +290,7 @@ public class CommandScreen implements CommandExecutor {
 	                		try {
 	                			info.setColor(0x00FF00);
 	                			float points = getPointsAccordingToScale(versus, isVictory);
-	                			info.addField("Points", String.valueOf(points), false);
+	                			info.addField("Points :", String.valueOf(points), false);
 	                			Screen screen = new Screen(replyMessage.getId(), isVictory ? winners : loosers, isVictory, versus, points, LocalDate.now());
 	                			screen.insert();
 	                			Ladder.updatePoints(message.getGuild(), isVictory ? winners : loosers, points);

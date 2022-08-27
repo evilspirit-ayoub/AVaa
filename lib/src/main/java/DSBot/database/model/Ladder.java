@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
 import DSBot.database.dao.LadderDAO;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageHistory;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
@@ -188,22 +188,29 @@ public class Ladder extends ListenerAdapter {
 				if(generalLadderUsers.isEmpty()) return;
 				String general = generalLadderUsers
 						.stream()
-						.map(user -> "#" + user.getGeneralLadderPosition() + " " + guild.getMemberById(user.getDiscordId()).getUser().getAsMention() + " (" + user.getTotalPoints() + " points)")
+						.map(user -> {
+							Member member = guild.getMemberById(user.getDiscordId());
+							String a = "#" + user.getGeneralLadderPosition() + " " + (member == null ? "<@" + user.getDiscordId() + ">" : member.getUser().getAsMention()) + " (" + user.getTotalPoints() + " points)";
+							return a;
+						})
 						.collect(Collectors.joining("\n"));
 				String month = monthLadderUsers
 						.stream()
-						.map(user -> "#" + user.getMonthLadderPosition() + " " + guild.getMemberById(user.getDiscordId()).getUser().getAsMention() + " (" + user.getMonthPoints() + " points)")
+						.map(user -> {
+							Member member = guild.getMemberById(user.getDiscordId());
+							String a = "#" + user.getMonthLadderPosition() + " " + (member == null ? "<@" + user.getDiscordId() + ">" : member.getUser().getAsMention()) + " (" + user.getMonthPoints() + " points)";
+							return a;
+						})
 						.collect(Collectors.joining("\n"));
-				String guilds = guildsMonthLadder(monthLadderUsers, guild);
 				List<Message> history = MessageHistory.getHistoryFromBeginning(channel).complete().getRetrievedHistory();
 				if(history.size() == 1) history.get(0).delete().queue();
 				else if(history.size() > 1) channel.deleteMessages(history).queue();
-				sendEmbeds(channel, general, month, guilds);
+				sendEmbeds(channel, general, month);
 			} catch (SQLException e) { e.printStackTrace(); }
 		});
 	}
 
-	private static String guildsMonthLadder(List<User> monthLadderUsers, Guild guild) {
+	/*private static String guildsMonthLadder(List<User> monthLadderUsers, Guild guild) {
 		Map<String, Float> unsorted = new HashMap<>();
 		for(User user : monthLadderUsers) {
 			Role guildRole = getGuildName(user, guild);
@@ -230,9 +237,9 @@ public class Ladder extends ListenerAdapter {
 				.filter(role -> role.getPermissions().isEmpty())
 				.findFirst()
 				.orElse(null);
-	}
+	}*/
 
-	private static void sendEmbeds(TextChannel channel, String general, String month, String guilds) {
+	private static void sendEmbeds(TextChannel channel, String general, String month) {
 		if(general.length() == 0 && month.length() == 0) return;
 		EmbedBuilder info = new EmbedBuilder();
 		general += "\n";
@@ -261,9 +268,5 @@ public class Ladder extends ListenerAdapter {
 			info.addField(nbrFields == 0 ? LocalDate.now().getMonth() + " :" : "", monthStr, true);
 			channel.sendMessageEmbeds(info.build()).queue();
 		}
-		info.clear();
-		info.setTitle("Classement des guildes du mois :");
-		info.setDescription(guilds);
-		channel.sendMessageEmbeds(info.build());
 	}
 }

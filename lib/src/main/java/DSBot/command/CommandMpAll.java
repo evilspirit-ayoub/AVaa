@@ -44,7 +44,7 @@ public class CommandMpAll implements CommandExecutor {
 		channel.sendTyping().queue();
 		EmbedBuilder info = new EmbedBuilder();
 		info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
-		if(!authorizedToLink(message.getMember()))
+		if(!authorizedToMPAll(message.getMember()))
 			throw new DSBotException(message, "Non autorise pour la plebe.");
 		String line = "";
 		for(int i = 0 ; i < args.length; i++) line += args[i] + " ";
@@ -113,7 +113,7 @@ public class CommandMpAll implements CommandExecutor {
 		}
 	}
 
-	private static boolean authorizedToLink(Member messageSenderMember) {
+	private static boolean authorizedToMPAll(Member messageSenderMember) {
 		if(messageSenderMember.hasPermission(Permission.VIEW_AUDIT_LOGS)) return true;
 		if(messageSenderMember.hasPermission(Permission.KICK_MEMBERS)) return true;
 		if(messageSenderMember.hasPermission(Permission.BAN_MEMBERS)) return true;

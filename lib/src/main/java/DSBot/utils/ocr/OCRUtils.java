@@ -2,15 +2,20 @@ package DSBot.utils.ocr;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
-import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.core.Size;
+import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
 
 import DSBot.utils.image.ImageUtils;
@@ -37,8 +42,8 @@ public class OCRUtils {
 		instance.setDatapath(tessDataFolder.getAbsolutePath());
 		/*File tmpFolder = LoadLibs.extractTessResources("linux-x86-64");
 		System.setProperty("java.library.path", tmpFolder.getPath());*/
-		BufferedImage image = ImageIO.read(file);
-		if(!verification(image, startX, startY, width, height)) return new ArrayList<>();
+		BufferedImage image = ImageIO.read(file).getSubimage(startX, startY, width, height);
+		//if(!verification(image, startX, startY, width, height)) return new ArrayList<>();
 		List<String> res = new ArrayList<>();
         List<Word> lines = doOCR(instance, file, new Rect(startX, startY, width, height), false, type, TessPageIteratorLevel.RIL_TEXTLINE);
         List<Word> words1, words2;
@@ -49,25 +54,14 @@ public class OCRUtils {
         	words1 = doOCR(instance, file, rect1, false, type, TessPageIteratorLevel.RIL_WORD);
         	str = "";
         	for(Word word : words1) {
-        		rect2 = getEnlargeRect(image, word.getBoundingBox());
-        		words2 = doOCR(instance, file, new Rect(rect1.x + rect2.x , rect1.y + rect2.y, rect2.width, rect2.height), true, type, TessPageIteratorLevel.RIL_WORD);
+        		Rectangle bb = word.getBoundingBox();
+        		rect2 = getEnlargeRect(image, new Rectangle(rect1.x + bb.x, rect1.y + bb.y, bb.width, bb.height));
+        		words2 = doOCR(instance, file, rect2, true, type, TessPageIteratorLevel.RIL_WORD);
         		for(Word w : words2) str += w.getText() + " ";
         	}
         	res.add(str);
         }
 		return res;
-	}
-	
-	private static boolean verification(BufferedImage image, int startX, int startY, int width, int height) {
-		if(startX < 0
-				|| startX > image.getWidth() - 1
-				|| startY < 0
-				|| startY > image.getHeight() - 1
-				|| width < 0
-				|| width > image.getWidth() - 1 - startX
-				|| height < 0
-				|| height > image.getHeight() - 1 - startY) return false;
-		return true;
 	}
 	
 	private static List<Word> doOCR(ITesseract instance, File file, Rect ocrLocation, boolean resize, int imgProcType, int iteratorLevel) throws Exception {
@@ -92,15 +86,35 @@ public class OCRUtils {
 	}
 	
 	public static BufferedImage preprocess(File file, Rect subimageDimension, boolean resize, int type) throws Exception {
-		Mat subimage = new Mat(Imgcodecs.imread(file.getPath()), subimageDimension);
-		if(resize) subimage = ImageUtils.resizeMat(subimage, subimageDimension.width * 2, subimageDimension.height * 2);
-		Mat gray = new Mat();
-        Imgproc.cvtColor(subimage, gray, Imgproc.COLOR_BGR2GRAY);
-		Mat threshold = new Mat();
-		Imgproc.threshold(gray, threshold, 127, 255, type);
-		//Imgproc.adaptiveThreshold(gray, threshold, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY_INV, 3, 5);
-		BufferedImage imgBuff = ImageUtils.matToBufferedImage(threshold);
-		//return ImageUtils.invertBlackAndWhite(imgBuff);
-		return imgBuff;
+		Mat kernel = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(1, 1));
+		Mat img = new Mat();
+        Mat imgGray = new Mat();
+        Mat imgGaussianBlur = new Mat();  
+        Mat imgThreshold = new Mat();
+        Mat dilate = new Mat();
+        
+        img = fileToMat(file, subimageDimension);
+        if(resize) img = ImageUtils.resizeMat(img, subimageDimension.width * 3, subimageDimension.height * 3);
+        Imgproc.GaussianBlur(img, imgGaussianBlur, new Size(0, 0), 10);
+        Core.addWeighted(img, 1.5, imgGaussianBlur, -0.5, 0, imgGaussianBlur);
+        Imgproc.cvtColor(imgGaussianBlur, imgGray, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.threshold(imgGray, imgThreshold, 127, 255, type);
+        Imgproc.dilate(imgThreshold, dilate, kernel);
+        //Imgcodecs.imwrite("C:\\Users\\okutucu\\Desktop\\block\\" + i + file.getName(), imgThreshold);
+        //i++;
+		//return ImageUtils.matToBufferedImage(erode);
+        return (BufferedImage) HighGui.toBufferedImage(dilate);
+	}
+	
+	
+	public static Mat fileToMat(File file, Rect subimageDimension) throws IOException {
+		BufferedImage image = ImageIO.read(file).getSubimage(subimageDimension.x, subimageDimension.y, subimageDimension.width, subimageDimension.height);
+		// Here we convert into *supported* format
+		BufferedImage imageCopy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
+		imageCopy.getGraphics().drawImage(image, 0, 0, null);
+		byte[] data = ((DataBufferByte) imageCopy.getRaster().getDataBuffer()).getData();  
+		Mat img = new Mat(image.getHeight(),image.getWidth(), CvType.CV_8UC3);
+		img.put(0, 0, data);
+		return img;
 	}
 }
