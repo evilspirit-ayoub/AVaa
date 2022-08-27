@@ -18,9 +18,7 @@ public class Library {
 	
     public static void main(String ... args) throws Exception {
     	// esclave 1
-    	//new Library().start("OTczNTU2MDIyNDkwODU3NDg0.GFmTns.0_mRntFlUuGNuxh8_seAgTwrqgstLC-S0tQM3g");
-    	// esclave 2
-    	new Library().start("OTkwMDEzMzQxNzcyNjk3NjEx.GZvfPW.GlgHzGCNwMY3Vl5s5Ju9xoUCbW1bXF8mRkoNs4");
+    	//new Library().start("token");
     }
     
     public void start(String token) throws LoginException, InterruptedException, IOException, ClassNotFoundException {
