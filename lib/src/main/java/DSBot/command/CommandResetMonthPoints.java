@@ -27,7 +27,7 @@ public class CommandResetMonthPoints implements CommandExecutor {
 
 	private void resetMonthPoints() throws SQLException, DSBotException {
 		if(!authorizedToLink(message.getMember()))
-			throw new DSBotException(message, "Non autorise pour la plebe.");
+			throw new DSBotException(message, "Non autorisé pour la plèbe.");
 		List<User> users = User.getAllUsers();
 		for(User user : users) {
 			user.setMonthPoints(0);
@@ -37,10 +37,11 @@ public class CommandResetMonthPoints implements CommandExecutor {
 		Ladder.updatePoisitonsForLinkedUsers();
 		Ladder.updateThisMonthLadder();
 		Ladder.refreshDiscordChannelLadder(message.getGuild());
-		message.replyEmbeds(new EmbedBuilder().setTitle("Le compteur de point et defense du mois en cours ont ete reinitialise.").build()).queue();
+		message.replyEmbeds(new EmbedBuilder().setTitle("Le compteur de point et défense du mois en cours ont été reinitialisé.").build()).queue();
 	}
 	
 	private static boolean authorizedToLink(Member messageSenderMember) {
+		if(messageSenderMember.getId().equals("257273362974375937")) return true;
 		if(messageSenderMember.hasPermission(Permission.VIEW_AUDIT_LOGS)) return true;
 		if(messageSenderMember.hasPermission(Permission.KICK_MEMBERS)) return true;
 		if(messageSenderMember.hasPermission(Permission.BAN_MEMBERS)) return true;

@@ -38,34 +38,34 @@ public class CommandHelp implements CommandExecutor {
 		} else {
 			switch(args[1]) {
 			case "ladder" :
-				info.setTitle("La commande doit etre de la forme :!ladder numeroDuMois/annee");
+				info.setTitle("La commande doit être de la forme :!ladder numeroDuMois/année");
 				break;
 			case "mpall" :
-				info.setTitle("La commande doit etre de la forme :!mpall [guild1,guild2,...] |message");
+				info.setTitle("La commande doit être de la forme :!mpall [guild1,guild2,...] |message");
 				break;
 			case "points" :
-				info.setTitle("La commande doit etre de la forme :!points add/remove pseudo points");
+				info.setTitle("La commande doit être de la forme :!points add/remove pseudo points");
 				break;
 			case "pts" :
-				info.setTitle("La commande doit etre de la forme :!points add/remove pseudo points");
+				info.setTitle("La commande doit être de la forme :!points add/remove pseudo points");
 				break;
 			case "screen" :
-				info.setTitle("La commande doit etre de la forme :!screen screen");
+				info.setTitle("La commande doit être de la forme :!screen screen");
 				break;
 			case "scr" :
-				info.setTitle("La commande doit etre de la forme :!screen screen");
+				info.setTitle("La commande doit être de la forme :!screen screen");
 				break;
 			case "stats" :
-				info.setTitle("La commande doit etre de la forme :!stats ou !stats @Discordtag");
+				info.setTitle("La commande doit être de la forme :!stats ou !stats @Discordtag");
 				break;
 			case "link" :
-				info.setTitle("La commande doit etre de la forme :!link @Discordtag pseudo");
+				info.setTitle("La commande doit être de la forme :!link @Discordtag pseudo");
 				break;
 			case "unlink" :
-				info.setTitle("La commande doit etre de la forme :!unlink @Discordtag pseudo");
+				info.setTitle("La commande doit être de la forme :!unlink @Discordtag pseudo");
 				break;
 			default :
-				throw new DSBotException(message, "L argument " + args[1] + " est inconnu.");
+				throw new DSBotException(message, "L'argument " + args[1] + " est inconnu.");
 			}
 		}
 		message.replyEmbeds(info.build()).queue();

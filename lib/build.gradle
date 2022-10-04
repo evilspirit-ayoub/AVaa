@@ -60,7 +60,13 @@ dependencies {
 	implementation 'org.openpnp:opencv:4.5.1-2'
 	
 	// https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client
-	implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.5'	
+	implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.5'
+	
+	// https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-java
+	implementation 'org.seleniumhq.selenium:selenium-java:4.4.0'
+	
+	// https://mvnrepository.com/artifact/io.github.bonigarcia/webdrivermanager
+	implementation 'io.github.bonigarcia:webdrivermanager:5.3.0'
 }
 
 tasks.withType(JavaCompile) {

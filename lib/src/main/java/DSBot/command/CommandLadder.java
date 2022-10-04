@@ -11,6 +11,7 @@ import DSBot.Library;
 import DSBot.database.model.Ladder;
 import DSBot.exception.DSBotException;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -33,8 +34,8 @@ public class CommandLadder implements CommandExecutor {
 
 	private void ladder() throws DSBotException, SQLException {
 		channel.sendTyping().queue();
-		if(args.length < 2) throw new DSBotException(message, "La commande doit contenir la date du ladder desire comme argument.");
-		else if(!isGoodDate(args[1])) throw new DSBotException(message, "Mauvaise date, l'argument doi etre de la forme : numeroDuMois/annee");
+		if(args.length < 2) throw new DSBotException(message, "La commande doit contenir la date du ladder desiré comme argument.");
+		else if(!isGoodDate(args[1])) throw new DSBotException(message, "Mauvaise date, l'argument doi être de la forme : numéroDuMois/année");
 		else {
 			EmbedBuilder info = new EmbedBuilder();
 			info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
@@ -45,8 +46,9 @@ public class CommandLadder implements CommandExecutor {
 			else {
 				String ladderStr = "";
 				for(int i = 0; i < ladder.getDiscordIds().size(); i++) {
-					User user = message.getGuild().getMemberById(ladder.getDiscordIds().get(i)).getUser();
-					ladderStr = ladderStr + "#" + ladder.getPositions().get(i) + " " + (user == null ? ladder.getDiscordIds().get(i) : user.getName()) + " (" + ladder.getPoints().get(i) + " points)\n";
+					if(ladder.getPoints().get(i) == 0) continue;
+					Member member = message.getGuild().getMemberById(ladder.getDiscordIds().get(i));
+					ladderStr = ladderStr + "#" + ladder.getPositions().get(i) + " " + (member == null ? ladder.getDiscordIds().get(i) : member.getEffectiveName()) + " (" + ladder.getPoints().get(i) + " points)\n";
 				}
 				sendEmbeds(ladderStr);
 			}
@@ -70,13 +72,17 @@ public class CommandLadder implements CommandExecutor {
 		EmbedBuilder info = new EmbedBuilder();
 		String[] ladderLines = ladder.split("\n");
 		String ladderStr = "";
-		for(int i = 0; i < ladderLines.length; i++) {
-			if((ladderStr.length() + ladderLines[i].length() + 1) > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
+		int pos = 0;
+		while(pos < ladderLines.length) {
+			if((ladderStr.length() + ladderLines[pos].length() + 1) > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
 				info.setDescription(ladderStr);
 				channel.sendMessageEmbeds(info.build()).queue();
 				info.clear();
 				ladderStr = "";
-			} else ladderStr = ladderStr + ladderLines[i] + "\n";
+			} else {
+				ladderStr = ladderStr + ladderLines[pos] + "\n";
+				pos++;
+			}
 		}
 		if(ladderStr.length() != 0) {
 			info.setDescription(ladderStr);

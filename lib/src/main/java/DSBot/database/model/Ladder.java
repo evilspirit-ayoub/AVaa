@@ -20,6 +20,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
@@ -63,15 +64,15 @@ public class Ladder extends ListenerAdapter {
 	public static List<Ladder> getAllLadders() throws SQLException { return ladderDAO.selectAllLadders(); }
 	
 	public static void updatePoints(Guild guild, List<String> pseudos, float points) throws SQLException {
-		if(isNewMonth()) resetMonthPoints(guild);
+		//if(isNewMonth()) resetMonthPoints(guild);
 		for(String pseudo : pseudos) {
 			User user = User.getUserByPseudo(pseudo);
 			if(user == null) {
-				User newUser = new User(null, pseudo, -1, -1, points, points, 1, 1);
+				User newUser = new User(null, pseudo, -1, -1, points < 0 ? 0 : points, points < 0 ? 0 : points, 1, 1);
 				newUser.insert();
 			} else {
-				user.setTotalPoints(user.getTotalPoints() + points);
-				user.setMonthPoints(user.getMonthPoints() + points);
+				user.setTotalPoints((user.getTotalPoints() + points) < 0 ? 0 : user.getTotalPoints() + points);
+				user.setMonthPoints((user.getMonthPoints() + points) < 0 ? 0 : user.getMonthPoints() + points);
 				if(points < 0) {
 					user.setNumberDefencesTotal(user.getNumberDefencesTotal() - 1);
 					user.setNumberDefencesMonth(user.getNumberDefencesMonth() - 1);
@@ -188,56 +189,82 @@ public class Ladder extends ListenerAdapter {
 				if(generalLadderUsers.isEmpty()) return;
 				String general = generalLadderUsers
 						.stream()
+						.filter(user -> user.getTotalPoints() != 0)
 						.map(user -> {
 							Member member = guild.getMemberById(user.getDiscordId());
-							String a = "#" + user.getGeneralLadderPosition() + " " + (member == null ? "<@" + user.getDiscordId() + ">" : member.getUser().getAsMention()) + " (" + user.getTotalPoints() + " points)";
+							String a = "#" + user.getGeneralLadderPosition() + " " + (member == null ? user.getDiscordId() : member.getEffectiveName()) + " (" + user.getTotalPoints() + " points)";
 							return a;
 						})
 						.collect(Collectors.joining("\n"));
 				String month = monthLadderUsers
 						.stream()
+						.filter(user -> user.getMonthPoints() != 0)
 						.map(user -> {
 							Member member = guild.getMemberById(user.getDiscordId());
-							String a = "#" + user.getMonthLadderPosition() + " " + (member == null ? "<@" + user.getDiscordId() + ">" : member.getUser().getAsMention()) + " (" + user.getMonthPoints() + " points)";
+							String a = "#" + user.getMonthLadderPosition() + " " + (member == null ? user.getDiscordId() : member.getEffectiveName()) + " (" + user.getMonthPoints() + " points)";
 							return a;
 						})
 						.collect(Collectors.joining("\n"));
 				List<Message> history = MessageHistory.getHistoryFromBeginning(channel).complete().getRetrievedHistory();
 				if(history.size() == 1) history.get(0).delete().queue();
 				else if(history.size() > 1) channel.deleteMessages(history).queue();
+				guildsMonthLadder(generalLadderUsers, monthLadderUsers, guild, channel);
 				sendEmbeds(channel, general, month);
 			} catch (SQLException e) { e.printStackTrace(); }
 		});
 	}
 
-	/*private static String guildsMonthLadder(List<User> monthLadderUsers, Guild guild) {
-		Map<String, Float> unsorted = new HashMap<>();
-		for(User user : monthLadderUsers) {
+	private static void guildsMonthLadder(List<User> generalLadderUsers, List<User> monthLadderUsers, Guild guild, TextChannel channel) {
+		Map<String, Float> unsortedGeneral = new HashMap<>();
+		for(User user : generalLadderUsers) {
+			if(user.getTotalPoints() == 0) continue;
 			Role guildRole = getGuildName(user, guild);
-			String guildName = guildRole == null ? "" : guildRole.getName();
-			if(unsorted.containsKey(guildName))
-				unsorted.replace(guildName, unsorted.get(guildName) + user.getMonthPoints());
+			if(guildRole == null) continue;
+			String guildName = guildRole.getName();
+			if(unsortedGeneral.containsKey(guildName))
+				unsortedGeneral.replace(guildName, unsortedGeneral.get(guildName) + user.getTotalPoints());
 			else
-				unsorted.put(guildName, user.getMonthPoints());
+				unsortedGeneral.put(guildName, user.getTotalPoints());
 		}
-		Map<String, Float> sorted = unsorted.entrySet().stream()
+		Map<String, Float> sortedGeneral = unsortedGeneral.entrySet().stream()
+			    .sorted(Entry.comparingByValue())
+			    .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+		String res2 ="";
+		for(String g : sortedGeneral.keySet())
+			res2 = "#" + findPosition(g, sortedGeneral) + " " + g + " (" + sortedGeneral.get(g) + " points)\n" + res2;
+		Map<String, Float> unsortedMonth = new HashMap<>();
+		for(User user : monthLadderUsers) {
+			if(user.getMonthPoints() == 0) continue;
+			Role guildRole = getGuildName(user, guild);
+			if(guildRole == null) continue;
+			String guildName = guildRole.getName();
+			if(unsortedMonth.containsKey(guildName))
+				unsortedMonth.replace(guildName, unsortedMonth.get(guildName) + user.getMonthPoints());
+			else
+				unsortedMonth.put(guildName, user.getMonthPoints());
+		}
+		Map<String, Float> sortedMonth = unsortedMonth.entrySet().stream()
 			    .sorted(Entry.comparingByValue())
 			    .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 		String res ="";
-		for(String g : sorted.keySet())
-			res = "#" + findPosition(g, sorted) + " " + g + " (" + sorted.get(g) + " points)\n" + res;
-		return res;
+		for(String g : sortedMonth.keySet())
+			res = "#" + findPosition(g, sortedMonth) + " " + g + " (" + sortedMonth.get(g) + " points)\n" + res;
+		channel.sendMessageEmbeds(
+				new EmbedBuilder()
+				.addField("GENERAL :", res2, true)
+				.addField(LocalDate.now().getMonth() + " :", res, true)
+				.build()
+				)
+		.queue();
 	}
 	
 	private static Role getGuildName(User user, Guild guild) {
-		return guild
-				.getMemberById(user.getDiscordId())
-				.getRoles()
-				.stream()
-				.filter(role -> role.getPermissions().isEmpty())
-				.findFirst()
-				.orElse(null);
-	}*/
+		Member member = guild.getMemberById(user.getDiscordId());
+		if(member == null) return null;
+		for(Role r : member.getRoles())
+			if(r.getPermissions().isEmpty()) return r;
+		return null;
+	}
 
 	private static void sendEmbeds(TextChannel channel, String general, String month) {
 		if(general.length() == 0 && month.length() == 0) return;
@@ -248,24 +275,37 @@ public class Ladder extends ListenerAdapter {
 		String[] monthLines = month.split("\n");
 		int nbrFields = 0;
 		String generalStr = "", monthStr = "";
-		for(int i = 0; i < generalLines.length; i++) {
-			if((generalStr.length() + generalLines[i].length() + 1) > MessageEmbed.VALUE_MAX_LENGTH
-					|| (monthStr.length() + monthLines[i].length() + 1) > MessageEmbed.VALUE_MAX_LENGTH) {
-				info.addField(nbrFields == 0 ? "GENERAL :" : "", generalStr, true);
-				info.addField(nbrFields == 0 ? LocalDate.now().getMonth() + " :" : "", monthStr, true);
+		int posGen = 0, posMonth = 0;
+		boolean genFull = false, monthFull = false;
+		while(posGen < generalLines.length || posMonth < monthLines.length) {
+			if(posGen < generalLines.length && (generalStr.length() + generalLines[posGen].length() + 1) < MessageEmbed.VALUE_MAX_LENGTH) {
+				generalStr = generalStr + generalLines[posGen] + "\n";
+				posGen++;
+			} else genFull = true;
+			if(posMonth < monthLines.length && (monthStr.length() + monthLines[posMonth].length() + 1) < MessageEmbed.VALUE_MAX_LENGTH) {
+				monthStr = monthStr + monthLines[posMonth] + "\n";
+				posMonth++;
+			} else monthFull = true;
+			if(genFull && monthFull) {
+				if(nbrFields == 0) {
+					info.addField("GENERAL :", generalStr, true);
+					info.addField(LocalDate.now().getMonth() + " :", monthStr, true);
+					nbrFields++;
+				} else {
+					info.addField("", generalStr, true);
+					info.addField("", monthStr, true);
+				}
 				channel.sendMessageEmbeds(info.build()).queue();
 				info.clear();
 				generalStr = "";
 				monthStr = "";
-				nbrFields++;
-			} else {
-				generalStr = generalStr + generalLines[i] + "\n";
-				monthStr = monthStr + monthLines[i] + "\n";
+				genFull = false;
+				monthFull = false;
 			}
 		}
 		if(generalStr.length() != 0 || monthStr.length() != 0) {
-			info.addField(nbrFields == 0 ? "GENERAL :" : "", generalStr, true);
-			info.addField(nbrFields == 0 ? LocalDate.now().getMonth() + " :" : "", monthStr, true);
+			info.addField("", generalStr, true);
+			info.addField("", monthStr, true);
 			channel.sendMessageEmbeds(info.build()).queue();
 		}
 	}

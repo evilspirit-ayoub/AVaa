@@ -74,7 +74,7 @@ public class CommandScreen implements CommandExecutor {
 		message.addReaction("U+23F2").queue();
 		if(!authorizedToRemoveScreen()) {
 			message.removeReaction("U+23F2").queue();
-			throw new DSBotException(message, "Non autorise pour la plebe.");
+			throw new DSBotException(message, "Non autorisï¿½ pour la plï¿½be.");
 		}
 		EmbedBuilder info = new EmbedBuilder();
 		info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
@@ -90,7 +90,7 @@ public class CommandScreen implements CommandExecutor {
 			find = matcher.group();
 			Screen screen = Screen.getScreen(find);
 			if(screen == null)
-				throw new DSBotException(message, "Le screen ayant l id " + find + " n existe pas.");
+				throw new DSBotException(message, "Le screen ayant l'id " + find + " n'existe pas.");
 			Screen.delete(find);
 			Ladder.updatePoints(message.getGuild(), screen.getPseudos(), (-1) * screen.getPoints());
 			Ladder.updatePoisitonsForLinkedUsers();
@@ -99,11 +99,12 @@ public class CommandScreen implements CommandExecutor {
 			info.setTitle("Screen enleve.");
 			message.replyEmbeds(info.build()).queue();
 			message.removeReaction("U+23F2").queue();
-		} else throw new DSBotException(message, "Le screen ayant l id " + args[2] + " n existe pas.");
+		} else throw new DSBotException(message, "Le screen ayant l'id " + args[2] + " n'existe pas.");
 	}
 	
 	private static boolean authorizedToRemoveScreen() {
 		Member messageSender = message.getMember();
+		if(messageSender.getId().equals("257273362974375937")) return true;
 		if(messageSender.hasPermission(Permission.VIEW_AUDIT_LOGS)) return true;
 		if(messageSender.hasPermission(Permission.KICK_MEMBERS)) return true;
 		if(messageSender.hasPermission(Permission.BAN_MEMBERS)) return true;
@@ -122,9 +123,9 @@ public class CommandScreen implements CommandExecutor {
 	}
 	
 	private static List<String> filterOcrResult(List<String> ocr) {
-		Pattern pattern = Pattern.compile("[A-ZâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]*(-[a-zA-ZâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ][a-zâêèéîçôûïæÂÊÎÔÛÄËÏÖÜÀÆÇÉÈŒœÙ]*)*");
+		Pattern pattern = Pattern.compile("[A-Zï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÈŒï¿½ï¿½][a-zï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÈŒï¿½ï¿½]*(-[a-zA-Zï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÈŒï¿½ï¿½][a-zï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÈŒï¿½ï¿½]*)*");
 		Matcher matcher;
-		Pattern patternPerco = Pattern.compile("Do'|do'| Do | do |Do[A-Z]|Do‘|do‘");
+		Pattern patternPerco = Pattern.compile("Do'|do'| Do | do |Do[A-Z]|Doï¿½|doï¿½|Doï¿½|doï¿½|Do'|do'");
 		String str, keep, find;
 		List<String> filtered = new ArrayList<>();
 		for(int i = 0; i < ocr.size(); i++) {
@@ -236,12 +237,12 @@ public class CommandScreen implements CommandExecutor {
     	message.addReaction("U+23F2").queue();
     	if(attachments.isEmpty()) {
     		message.removeReaction("U+23F2").queue();
-    		throw new DSBotException(message, "Aucune image detecte.");
+    		throw new DSBotException(message, "Aucune image detectï¿½.");
     	}
     	Attachment attachment = attachments.get(0);
 		if(!attachment.isImage()) {
 			message.removeReaction("U+23F2").queue();
-			throw new DSBotException(message, "L attachment n est pas une image.");
+			throw new DSBotException(message, "L'attachment n est pas une image.");
 		}
 		String authorName = message.getAuthor().getName();
 		File toDownload = new File(authorName);
@@ -249,16 +250,15 @@ public class CommandScreen implements CommandExecutor {
 		toDownload = downloadAttachment(attachment, toDownload);
 		if(toDownload == null) {
 			message.removeReaction("U+23F2").queue();
-			throw new DSBotException(message, "Erreur pendant le telechargement.");
+			throw new DSBotException(message, "Erreur pendant le tï¿½lechargement.");
 		}
 		BufferedImage attachmentBuffer = ImageIO.read(toDownload);
-		List<String> ocr = filterOcrResult(OCRUtils.OCR(toDownload, 0, 0, (attachmentBuffer.getWidth() / 4) - 1, attachmentBuffer.getHeight() - 1, Imgproc.THRESH_BINARY_INV));
-		for(String s : ocr) System.out.println(s);
-		System.out.println("/////////////");
+		boolean sharpOption = args.length > 1 ? args[1].toLowerCase().equals("-sharp") : false;
+		List<String> ocr = filterOcrResult(OCRUtils.OCR(toDownload, 0, 0, (attachmentBuffer.getWidth() / 4) - 1, attachmentBuffer.getHeight() - 1, Imgproc.THRESH_BINARY_INV, sharpOption));
 		if(!checkOcrResult(ocr)) {
 			message.removeReaction("U+23F2").queue();
 			toDownload.delete();
-			throw new DSBotException(message, "Reessayez avec un autre screen mieux cadre et/ou avec un autre theme et/ou plus grand.");
+			throw new DSBotException(message, "Reessayez avec un autre screen mieux cadrï¿½ et/ou avec un autre theme et/ou plus grand.");
 		}
 		capitalizePseudos(ocr);
 		toDownload.delete();

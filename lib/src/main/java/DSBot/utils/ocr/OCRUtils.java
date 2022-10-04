@@ -35,7 +35,7 @@ public class OCRUtils {
 		nu.pattern.OpenCV.loadLocally();
 	}
 	
-	public static List<String> OCR(File file, int startX, int startY, int width, int height, int type) throws TesseractException, Exception {
+	public static List<String> OCR(File file, int startX, int startY, int width, int height, int type, boolean sharpOption) throws TesseractException, Exception {
 		if(!file.exists()) return new ArrayList<>();
 		ITesseract instance = new Tesseract();
 		File tessDataFolder = LoadLibs.extractTessResources("tessdata");
@@ -45,18 +45,18 @@ public class OCRUtils {
 		BufferedImage image = ImageIO.read(file).getSubimage(startX, startY, width, height);
 		//if(!verification(image, startX, startY, width, height)) return new ArrayList<>();
 		List<String> res = new ArrayList<>();
-        List<Word> lines = doOCR(instance, file, new Rect(startX, startY, width, height), false, type, TessPageIteratorLevel.RIL_TEXTLINE);
+        List<Word> lines = doOCR(instance, file, new Rect(startX, startY, width, height), false, type, TessPageIteratorLevel.RIL_TEXTLINE, sharpOption);
         List<Word> words1, words2;
         Rect rect1, rect2;
         String str;
         for(Word line : lines) {
         	rect1 = getEnlargeRect(image, line.getBoundingBox());
-        	words1 = doOCR(instance, file, rect1, false, type, TessPageIteratorLevel.RIL_WORD);
+        	words1 = doOCR(instance, file, rect1, false, type, TessPageIteratorLevel.RIL_WORD, sharpOption);
         	str = "";
         	for(Word word : words1) {
         		Rectangle bb = word.getBoundingBox();
         		rect2 = getEnlargeRect(image, new Rectangle(rect1.x + bb.x, rect1.y + bb.y, bb.width, bb.height));
-        		words2 = doOCR(instance, file, rect2, true, type, TessPageIteratorLevel.RIL_WORD);
+        		words2 = doOCR(instance, file, rect2, true, type, TessPageIteratorLevel.RIL_WORD, sharpOption);
         		for(Word w : words2) str += w.getText() + " ";
         	}
         	res.add(str);
@@ -64,8 +64,8 @@ public class OCRUtils {
 		return res;
 	}
 	
-	private static List<Word> doOCR(ITesseract instance, File file, Rect ocrLocation, boolean resize, int imgProcType, int iteratorLevel) throws Exception {
-		BufferedImage preprocessImg =  preprocess(file, ocrLocation, resize, imgProcType);
+	private static List<Word> doOCR(ITesseract instance, File file, Rect ocrLocation, boolean resize, int imgProcType, int iteratorLevel, boolean sharpOption) throws Exception {
+		BufferedImage preprocessImg =  preprocess(file, ocrLocation, resize, imgProcType, sharpOption);
 		return instance.getWords(preprocessImg, iteratorLevel);
 	}
 	
@@ -85,7 +85,7 @@ public class OCRUtils {
 		return new Rect(actualBox.x, actualBox.y, actualBox.width, actualBox.height);
 	}
 	
-	public static BufferedImage preprocess(File file, Rect subimageDimension, boolean resize, int type) throws Exception {
+	public static BufferedImage preprocess(File file, Rect subimageDimension, boolean resize, int type, boolean sharpOption) throws Exception {
 		Mat kernel = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(1, 1));
 		Mat img = new Mat();
         Mat imgGray = new Mat();
@@ -95,15 +95,24 @@ public class OCRUtils {
         
         img = fileToMat(file, subimageDimension);
         if(resize) img = ImageUtils.resizeMat(img, subimageDimension.width * 3, subimageDimension.height * 3);
-        Imgproc.GaussianBlur(img, imgGaussianBlur, new Size(0, 0), 10);
-        Core.addWeighted(img, 1.5, imgGaussianBlur, -0.5, 0, imgGaussianBlur);
-        Imgproc.cvtColor(imgGaussianBlur, imgGray, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.threshold(imgGray, imgThreshold, 127, 255, type);
-        Imgproc.dilate(imgThreshold, dilate, kernel);
-        //Imgcodecs.imwrite("C:\\Users\\okutucu\\Desktop\\block\\" + i + file.getName(), imgThreshold);
-        //i++;
-		//return ImageUtils.matToBufferedImage(erode);
-        return (BufferedImage) HighGui.toBufferedImage(dilate);
+        if(sharpOption) {
+        	Imgproc.GaussianBlur(img, imgGaussianBlur, new Size(0, 0), 10);
+            Core.addWeighted(img, 1.5, imgGaussianBlur, -0.5, 0, imgGaussianBlur);
+            Imgproc.cvtColor(imgGaussianBlur, imgGray, Imgproc.COLOR_BGR2GRAY);
+            Imgproc.threshold(imgGray, imgThreshold, 127, 255, type);
+            //Imgproc.dilate(imgThreshold, dilate, kernel);
+            //Imgcodecs.imwrite("C:\\Users\\okutucu\\Desktop\\block\\" + i + file.getName(), imgThreshold);
+            //i++;
+    		//return ImageUtils.matToBufferedImage(erode);
+            return (BufferedImage) HighGui.toBufferedImage(imgThreshold);
+        } else {
+        	Imgproc.cvtColor(img, imgGray, Imgproc.COLOR_BGR2GRAY);
+            Imgproc.threshold(imgGray, imgThreshold, 127, 255, type);
+            //Imgcodecs.imwrite("C:\\Users\\okutucu\\Desktop\\block\\" + i + file.getName(), imgThreshold);
+            //i++;
+    		//return ImageUtils.matToBufferedImage(erode);
+            return (BufferedImage) HighGui.toBufferedImage(imgThreshold);
+        }
 	}
 	
 	

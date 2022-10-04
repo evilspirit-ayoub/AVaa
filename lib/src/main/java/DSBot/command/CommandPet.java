@@ -20,6 +20,6 @@ public class CommandPet implements CommandExecutor {
 			for(int i = 0; i < 45; i++) s += emote.get(0).getAsMention() + " ";
 			message.getChannel().sendMessage(s).queue();
 		}
-		else throw new DSBotException(message, "Emote petthefrizouzou non trouve.");
+		else throw new DSBotException(message, "Emote petthefrizouzou non trouvé.");
 	}
 }

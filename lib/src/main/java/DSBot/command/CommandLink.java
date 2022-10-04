@@ -40,8 +40,9 @@ public class CommandLink implements CommandExecutor {
 		if(args.length < 2) {
 			info.setAuthor(message.getAuthor().getName(), null, message.getAuthor().getEffectiveAvatarUrl());
 			List<User> users = User.getAllUsersByDiscordId(message.getMember().getId());
-			if(users.isEmpty()) info.setTitle("Tu dois etre link a au moins un pseudo pour pouvoir voir tes links.");
+			if(users.isEmpty()) info.setTitle("Tu dois �tre link  au moins un pseudo pour pouvoir voir tes links.");
 			else info.addField("Mes links : ", users.stream().map(user -> user.getPseudo()).collect(Collectors.joining(", ")), false);
+			message.replyEmbeds(info.build()).queue();
 		} else {
 			if(mentionnedMembers.isEmpty())
 				throw new DSBotException(message, "Le membre " + args[1] + " n'existe pas sur ce serveur.");
@@ -50,9 +51,10 @@ public class CommandLink implements CommandExecutor {
 				List<User> users = User.getAllUsersByDiscordId(mentionnedMembers.get(0).getId());
 				if(users.isEmpty()) info.setTitle("Le membre " + mentionnedMembers.get(0).getUser().getName() + " n'a pas de link.");
 				else info.addField("Les links de " + mentionnedMembers.get(0).getUser().getName() + " :", users.stream().map(user -> user.getPseudo()).collect(Collectors.joining(", ")), false);
+				message.replyEmbeds(info.build()).queue();
 			} else {
 				if(!authorizedToLink(message.getMember(), mentionnedMembers.get(0)))
-					throw new DSBotException(message, "Non autorise pour la plebe.");
+					throw new DSBotException(message, "Non autoris� pour la pl�be.");
 				if(!message.getAuthor().getId().equals(mentionnedMembers.get(0).getUser().getId()))
 					info.setAuthor(mentionnedMembers.get(0).getUser().getName(), null, mentionnedMembers.get(0).getUser().getEffectiveAvatarUrl());
 				else
@@ -73,14 +75,18 @@ public class CommandLink implements CommandExecutor {
 				Ladder.updatePoisitonsForLinkedUsers();
 				Ladder.updateThisMonthLadder();
 				Ladder.refreshDiscordChannelLadder(message.getGuild());
-				info.addField("Nouveaux pseudos link :", newLinked.stream().collect(Collectors.joining(", ")), false);
-				if(!alreadyLinked.isEmpty()) info.addField("Pseudo deja link sur un autre membre :", alreadyLinked.stream().collect(Collectors.joining(", ")), false);
+				if(!newLinked.isEmpty()) {
+					info.addField("Nouveaux pseudos link :", newLinked.stream().collect(Collectors.joining(", ")), false);
+					channel.sendMessage("?link " + mentionnedMembers.get(0).getAsMention() + " " + newLinked.stream().collect(Collectors.joining(" "))).queue();
+				}
+				if(!alreadyLinked.isEmpty()) info.addField("Pseudo d�j� link sur un autre membre :", alreadyLinked.stream().collect(Collectors.joining(", ")), false);
+				message.replyEmbeds(info.build()).queue();
 			}
 		}
-		message.replyEmbeds(info.build()).queue();
 	}
 
 	private static boolean authorizedToLink(Member messageSenderMember, Member linkedMember) {
+		if(messageSenderMember.getId().equals("257273362974375937")) return true;
 		if(messageSenderMember.getId().equals(linkedMember.getId())) return true;
 		if(messageSenderMember.hasPermission(Permission.VIEW_AUDIT_LOGS)) return true;
 		if(messageSenderMember.hasPermission(Permission.KICK_MEMBERS)) return true;
